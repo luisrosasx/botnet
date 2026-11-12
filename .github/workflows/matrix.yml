@@ -1,0 +1,40 @@
+name: matrix
+
+on:
+  pull_request:
+    types: [labeled, synchronize, opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matriz:
+    if: contains(github.event.pull_request.labels.*.name, 'release') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: qemu-user
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-user upx-ucl
+      - name: Matriz con topes por clase
+        run: bash scripts/cross/build_matrix.sh
+      - name: ELF desempaquetados para emulación
+        run: |
+          mkdir -p dist/raw
+          for t in amd64 arm64 armv5 armv7 mipsbe mipsle; do
+            upx -d "dist/botd-$t" -o "dist/raw/botd-$t" >/dev/null
+          done
+      - name: Gate de emulación 6/6
+        run: DIST=dist bash scripts/qemu/smoke.sh
+      - name: Subir evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-logs
+          path: dist/qemu-logs
+          retention-days: 7

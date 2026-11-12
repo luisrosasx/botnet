@@ -1,0 +1,93 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: botnet
+          POSTGRES_DB: botnet
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U botnet"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["16379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      nats:
+        image: nats:2
+        ports: ["14233:4222"]
+        options: >-
+          --health-cmd "wget -qO- http://127.0.0.1:8222/healthz || exit 1"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgres://botnet@127.0.0.1:5433/botnet?sslmode=disable
+      REDIS_URL: redis://127.0.0.1:16379/9
+      NATS_URL: nats://127.0.0.1:14233
+      REDIS_SERVER_BIN: ""
+      NATS_SERVER_BIN: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Esperar motores
+        run: |
+          for i in $(seq 1 60); do
+            pg_isready -h 127.0.0.1 -p 5433 -U botnet && break
+            sleep 2
+          done
+      # -p 1: la contención del motor produce falsos rojos, ya documentado.
+      # -v para poder contar PASS y detectar un job verde que no ejecutó nada.
+      - name: Suite completa
+        run: |
+          set -o pipefail
+          go test -count=1 -p 1 -v ./... 2>&1 | tee /tmp/test.log
+          pass=$(grep -c '^--- PASS' /tmp/test.log || true)
+          echo "tests ejecutados: $pass"
+          if [ "$pass" -lt 380 ]; then
+            echo "::error::solo $pass PASS, por debajo del suelo 380: el job está mintiendo"
+            exit 1
+          fi
+      - name: Subir log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: /tmp/test.log
+          retention-days: 7
+
+  panel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Instalar y construir
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -s build

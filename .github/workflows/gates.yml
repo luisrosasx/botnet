@@ -1,0 +1,30 @@
+name: gates
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  estructura:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Blueprint (estructura de diseño)
+        run: bash scripts/check-blueprint.sh
+      - name: Documento de estado
+        run: bash scripts/check-state-doc.sh
+      - name: gofmt
+        run: test -z "$(gofmt -l . | tee /dev/stderr)"
+      - name: go vet
+        run: go vet ./...
+      - name: go build
+        run: go build ./...
