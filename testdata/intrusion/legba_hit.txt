@@ -1,0 +1,5 @@
+legba 1.1.2 (texto plano, captura de target vulnerable, fixture T-0201)
+scanning 10.70.0.5 with 4 protocols, 6 credential pairs
+[SUCCESS] http 10.70.0.5:80 admin:admin
+[INFO] telnet 10.70.0.5:23 root:vizx (timeout)
+done in 18.4s

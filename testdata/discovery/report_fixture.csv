@@ -1,0 +1,11 @@
+asn,country,ip,device_class_guess
+4134,CN,1.20.30.10,router
+4134,CN,1.20.30.99,router
+4134,CN,1.20.31.5,camera
+9829,BR,201.15.7.3,nas
+9829,BR,201.15.7.4,nas
+9829,BR,201.15.8.9,router
+17923,ID,36.68.10.1,camera
+17923,ID,36.68.10.2,camera
+17923,ID,36.68.10.200,unknown
+0,,10.0.0.1,unknown

@@ -1,0 +1,1 @@
+{"info": "legba 1.1.2 json output (captura de QEMU TL-WR841N, fixture T-0201)", "credentials": [{"protocol": "http", "host": "10.70.0.5", "port": 80, "username": "admin", "password": "admin"}, {"protocol": "telnet", "host": "10.70.0.5", "port": 23, "username": "root", "password": "vizx"}], "info_time": "20s"}

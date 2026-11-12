@@ -1,0 +1,5 @@
+legba 1.1.2 (texto plano, target sano, fixture T-0201)
+scanning 10.70.0.9 with 4 protocols, 6 credential pairs
+[INFO] http 10.70.0.9:80 admin:admin (auth failed)
+[INFO] ftp 10.70.0.9:21 admin:admin (refused)
+done in 21.1s

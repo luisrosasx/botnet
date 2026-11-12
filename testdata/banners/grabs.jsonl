@@ -1,0 +1,100 @@
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.0.1","port":554}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.0.8","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Tp-LinkSystem/hi3\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n\u003ctitle\u003eTP-LINK | TL-WR841N v9\u003c/title\u003e","ip":"39.108.0.15","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.0.22","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: cheetah\r\nConnection: close\r\n\r\n\u003ctitle\u003eDIR-615 | Wireless N Router\u003c/title\u003e","ip":"39.108.0.29","port":80}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.0.36","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.0.43","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.0.50","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.0.57","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: KWebServer\r\nConnection: close\r\n\r\n\u003ctitle\u003eSpeedTouch 5x6\u003c/title\u003e","ip":"39.108.0.64","port":23}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.0.71","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.0.78","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.0.85","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.0.92","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.0.99","port":80}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.0.106","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Tp-LinkSystem/hi3\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n\u003ctitle\u003eTP-LINK | TL-WR841N v9\u003c/title\u003e","ip":"39.108.0.113","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.1.120","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: cheetah\r\nConnection: close\r\n\r\n\u003ctitle\u003eDIR-615 | Wireless N Router\u003c/title\u003e","ip":"39.108.1.127","port":554}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.1.134","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.1.141","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.1.148","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.1.155","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.1.162","port":554}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.1.169","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.1.176","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.1.183","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.1.190","port":32210}
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.1.197","port":80}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.1.204","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Tp-LinkSystem/hi3\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n\u003ctitle\u003eTP-LINK | TL-WR841N v9\u003c/title\u003e","ip":"39.108.1.211","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.1.218","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: cheetah\r\nConnection: close\r\n\r\n\u003ctitle\u003eDIR-615 | Wireless N Router\u003c/title\u003e","ip":"39.108.1.225","port":32210}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.1.232","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.2.239","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.2.246","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.2.3","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: KWebServer\r\nConnection: close\r\n\r\n\u003ctitle\u003eSpeedTouch 5x6\u003c/title\u003e","ip":"39.108.2.10","port":554}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.2.17","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.2.24","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.2.31","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.2.38","port":80}
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.2.45","port":32210}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.2.52","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.2.59","port":8080}
+{"banner":"HTTP/1.0 403 Forbidden\r\nServer: Zyxel HTTP Server\r\nConnection: close\r\n\r\n","ip":"39.108.2.66","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.2.73","port":80}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.2.80","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.2.87","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.2.94","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.2.101","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: KWebServer\r\nConnection: close\r\n\r\n\u003ctitle\u003eSpeedTouch 5x6\u003c/title\u003e","ip":"39.108.3.108","port":32210}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.3.115","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.3.122","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.3.129","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.3.136","port":80}
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.3.143","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.3.150","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.3.157","port":80}
+{"banner":"HTTP/1.0 403 Forbidden\r\nServer: Zyxel HTTP Server\r\nConnection: close\r\n\r\n","ip":"39.108.3.164","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.3.171","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.3.178","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.3.185","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.3.192","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.3.199","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: KWebServer\r\nConnection: close\r\n\r\n\u003ctitle\u003eSpeedTouch 5x6\u003c/title\u003e","ip":"39.108.3.206","port":554}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.3.213","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.3.220","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.4.227","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.4.234","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.4.241","port":80}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.4.248","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Tp-LinkSystem/hi3\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n\u003ctitle\u003eTP-LINK | TL-WR841N v9\u003c/title\u003e","ip":"39.108.4.5","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.4.12","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: cheetah\r\nConnection: close\r\n\r\n\u003ctitle\u003eDIR-615 | Wireless N Router\u003c/title\u003e","ip":"39.108.4.19","port":80}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.4.26","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.4.33","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.4.40","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.4.47","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: KWebServer\r\nConnection: close\r\n\r\n\u003ctitle\u003eSpeedTouch 5x6\u003c/title\u003e","ip":"39.108.4.54","port":8080}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.4.61","port":554}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.4.68","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.4.75","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.4.82","port":554}
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.4.89","port":32210}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.5.96","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.5.103","port":80}
+{"banner":"HTTP/1.0 403 Forbidden\r\nServer: Zyxel HTTP Server\r\nConnection: close\r\n\r\n","ip":"39.108.5.110","port":23}
+{"banner":"HTTP/1.1 200 OK\r\nServer: cheetah\r\nConnection: close\r\n\r\n\u003ctitle\u003eDIR-615 | Wireless N Router\u003c/title\u003e","ip":"39.108.5.117","port":554}
+{"banner":"HTTP/1.0 200 OK\r\nServer: HTTP Server 1.0\r\nConnection: close\r\n\r\n\u003ctitle\u003eHuawei Technologies - HG532\u003c/title\u003e","ip":"39.108.5.124","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: ZXH108 Router Webserver\r\nConnection: close\r\n\r\n\u003ctitle\u003eZXHN H108N\u003c/title\u003e","ip":"39.108.5.131","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: DrayTek/1.2\r\nConnection: close\r\n\r\n\u003ctitle\u003eVigor 2925\u003c/title\u003e","ip":"39.108.5.138","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache\r\nConnection: close\r\n\r\n\u003ctitle\u003eTechnicolor TG582n\u003c/title\u003e","ip":"39.108.5.145","port":32210}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Apache/2.2.22\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n","ip":"39.108.5.152","port":80}
+{"banner":"HTTP/1.0 401 Unauthorized\r\nServer: HTTP Server at 192.168.1.1\r\nConnection: close\r\n\r\n\u003ctitle\u003eWRT54G\u003c/title\u003e","ip":"39.108.5.159","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Broadcom BCM963xx\r\nConnection: close\r\n\r\n\u003ctitle\u003eHome Gateway\u003c/title\u003e","ip":"39.108.5.166","port":8080}
+{"banner":"HTTP/1.1 200 OK\r\nServer: Netgear WNR2000 V1.1.2\r\nConnection: close\r\n\r\n","ip":"39.108.5.173","port":80}
+{"banner":"HTTP/1.1 200 OK\r\nServer: GPON ONT\r\nConnection: close\r\n\r\n\u003ctitle\u003eNetgear WGR614v10\u003c/title\u003e","ip":"39.108.5.180","port":23}
+{"banner":"HTTP/1.1 401 Unauthorized\r\nServer: MikroTik 3.41\r\nWWW-Authenticate: Basic realm=\"MikroTik\"\r\nConnection: close\r\n\r\n","ip":"39.108.5.187","port":23}
+{"banner":"HTTP/1.0 401 Authorization Required\r\nServer: OpenWrt-LuCI\r\nWWW-Authenticate: Basic realm=\"LuCI - OpenWrt\"\r\n\r\n","ip":"39.108.5.194","port":554}
