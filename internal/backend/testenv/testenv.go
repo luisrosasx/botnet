@@ -40,7 +40,15 @@ func RedisServerBin() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, "tools", "redis", "Redis-7.4.3-Windows-x64-msys2", "redis-server.exe")
+	// Windows portable primero; en Linux/CI el binario está en PATH.
+	cand := filepath.Join(home, "tools", "redis", "Redis-7.4.3-Windows-x64-msys2", "redis-server.exe")
+	if _, err := os.Stat(cand); err == nil {
+		return cand
+	}
+	if p, err := exec.LookPath("redis-server"); err == nil {
+		return p
+	}
+	return cand
 }
 
 // NatsServerBin: equivalente para nats-server (JetStream incluido).

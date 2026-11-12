@@ -30,6 +30,11 @@ func NewDisk(dir string) (*Disk, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
+	// MkdirAll no toca el modo de un directorio que ya existe y el estado
+	// del nodo guarda claves: se fuerza 0700 (no-op en Windows).
+	if err := os.Chmod(dir, 0o700); err != nil && !errors.Is(err, os.ErrPermission) {
+		return nil, err
+	}
 	return &Disk{Dir: dir}, nil
 }
 

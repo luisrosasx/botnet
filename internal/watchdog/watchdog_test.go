@@ -697,7 +697,9 @@ func TestPersistMode(t *testing.T) {
 		{map[string]string{"INVOCATION_ID": "deadbeef"}, "systemd"},
 		{map[string]string{"BOTNET_PERSIST": "rc"}, "rc"},
 		{map[string]string{}, "reboot"},
-		{map[string]string{"INVOCATION_ID": "x", "BOTNET_PERSIST": "rc"}, "systemd"},
+		// El override explícito manda: el runner de CI define INVOCATION_ID
+		// y sin esta precedencia pisaba al snippet de rc.local.
+		{map[string]string{"INVOCATION_ID": "x", "BOTNET_PERSIST": "rc"}, "rc"},
 	}
 	for _, c := range cases {
 		got := PersistMode(func(k string) string { return c.env[k] })

