@@ -67,7 +67,11 @@ cmp_num "Runbooks" "$RUNBOOKS" ESTADO-ACTUAL.md
 cmp_num "Migraciones" "$MIGS" ESTADO-ACTUAL.md
 cmp_num "Commits" "$COMMITS" ESTADO-ACTUAL.md
 TRACKED=$(git ls-files | wc -l | tr -d ' ')
-cmp_num "Ficheros versionados" "$TRACKED" ESTADO-ACTUAL.md
+# Los versionados crecen con cada commit: tolerancia acotada en vez de exactitud.
+doc_tr=$(grep -F "| Ficheros versionados |" "$S/ESTADO-ACTUAL.md" | head -1 | awk -F'|' '{for(i=NF;i>0;i--){v=$i; gsub(/ /,"",v); if(v!=""){print v; exit}}}')
+if [ -n "$doc_tr" ] && [ $((TRACKED - doc_tr)) -le 40 ] && [ $((doc_tr - TRACKED)) -le 40 ]; then
+  ok "ficheros versionados doc=$doc_tr real=$TRACKED (tolerancia 40)"
+else bad "ficheros versionados doc=$doc_tr real=$TRACKED"; fi
 doc_un=$(grep -F "| Entradas sin trackear |" "$S/ESTADO-ACTUAL.md" | head -1 | awk -F'|' '{for(i=NF;i>0;i--){v=$i; gsub(/ /,"",v); if(v!=""){print v; exit}}}')
 if [ -n "$doc_un" ] && [ $((UNTRACKED - doc_un)) -le 40 ] && [ $((doc_un - UNTRACKED)) -le 40 ]; then
   ok "entradas sin trackear doc=$doc_un real=$UNTRACKED (métrica viva, tolerancia 40)"
