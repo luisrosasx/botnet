@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/botnet/botnet/internal/loss"
 	"github.com/botnet/botnet/pkg/proto"
 )
 
@@ -15,27 +16,38 @@ import (
 // 1. El head-of-line con 1-2 % de perdida queda medido por sesion: o hay
 // aislamiento, o hay precio honesto (repricing del GB en el runbook).
 
-// SecondConnThresholdBPS: 1 % en puntos basicos. Por debajo, una sola
-// conexion; la politica jamas abre conexiones "por si acaso".
-const SecondConnThresholdBPS = 100
+// SecondConnThresholdBPS y MaxConnsPerNode viven en internal/loss desde
+// S-05a: el agente tambien aplica la politica y el paquete main no se
+// puede importar desde ahi.
+const (
+	SecondConnThresholdBPS = loss.SecondConnThresholdBPS
+	MaxConnsPerNode        = loss.MaxConnsPerNode
+)
 
-// MaxConnsPerNode: techo §5 — hasta 4 conexiones H2 por nodo.
-const MaxConnsPerNode = 4
+// ConnsForLoss: escalonado por perdida medida (delegado en internal/loss).
+func ConnsForLoss(lossBPS uint16) int { return loss.ForLoss(lossBPS) }
 
-// ConnsForLoss: escalonado por perdida medida. Reposo sano (<= 1 %) = 1;
-// > 1 % abre la segunda; > 3 % la tercera; > 6 % la cuarta.
-func ConnsForLoss(lossBPS uint16) int {
-	if lossBPS <= SecondConnThresholdBPS {
-		return 1
+// LossPusher materializa el empuje gateway→nodo y decide cuando toca.
+// El consumidor del agente (internal/agent.LossConsumer) aplica el
+// resultado con histeresis; aqui solo se empaqueta y se escribe.
+type LossPusher struct {
+	NodeID [16]byte
+}
+
+// MaybePush escribe el frame si el latido toca empuje (T-0906 AC2: un
+// solo carril, cada 3.er frame de la cadencia unica). Devuelve si escribio.
+func (p LossPusher) MaybePush(w interface{ Write([]byte) (int, error) }, seq uint32, lossBPS uint16) (bool, error) {
+	if w == nil || !PushLossOnHeartbeat(seq) {
+		return false, nil
 	}
-	n := 2
-	if lossBPS > 300 {
-		n = 3
+	wire := BuildLossPush(p.NodeID, seq, lossBPS)
+	if wire == nil {
+		return false, proto.ErrInvalidLen
 	}
-	if lossBPS > 600 {
-		n = MaxConnsPerNode
+	if _, err := w.Write(wire); err != nil {
+		return false, err
 	}
-	return n
+	return true, nil
 }
 
 // PushLossOnHeartbeat: el empuje viaja con el heartbeat completo (cada

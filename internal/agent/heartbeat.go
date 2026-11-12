@@ -153,6 +153,12 @@ type AgentDeps struct {
 	Flush    func() error        // ultimo flush contable (T-0409 AC3)
 	Cmds     *CmdQueue           // pending_cmds con dedup por id (T-0409 AC2)
 	OnDelay  func(time.Duration) // hook de test: intervalo aplicado al siguiente frame
+
+	// T-1404 AC2 — commit de self-update tras latidos sanos (H2).
+	Commit  *CommitTimer // nil = sin temporizador
+	Updater *Updater     // fija la version estable local
+	Version string       // version en ejecucion, la que se fija
+	Streams func() int   // sesiones vivas; sin hook se asume 0
 }
 
 // RunAgentLoop es el bucle del modo agente: un solo temporizador por
@@ -265,6 +271,22 @@ func (d AgentDeps) applyBeat(ctx context.Context, seq uint32, heapKiB uint32, up
 		}
 		if d.Cmds != nil && len(hr.PendingCmds) > 0 {
 			*acks = append(*acks, d.Cmds.Enqueue(hr.PendingCmds)...)
+		}
+		// T-1404 AC2: una version descargada se fija tras latidos sanos
+		// con trafico real. Sin streams servidos no se fija nada.
+		if d.Commit != nil && d.Updater != nil && d.Version != "" {
+			streams := 0
+			if d.Streams != nil {
+				streams = d.Streams()
+			}
+			if d.Commit.Beat(true, streams) {
+				if cerr := d.Updater.Commit(d.Version); cerr != nil {
+					d.Log.Warn("update: commit fallo", "err", cerr)
+				} else {
+					d.Log.Info("update=commit", "version", d.Version,
+						"racha_sana_s", int(d.Commit.after.Seconds()))
+				}
+			}
 		}
 		if hr.Bye && d.Machine != nil {
 			d.Log.Info("bye: drenar, ultimo flush y borrar claves")

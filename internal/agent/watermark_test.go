@@ -154,6 +154,7 @@ func TestT1306HeartbeatSurvivesPause(t *testing.T) {
 		if w.Admit() {
 			t.Fatalf("minuto %d: admision abierta con presion permanente", m)
 		}
+		w.MarkHeartbeat() // el bucle de control late aunque la pausa siga
 		if !w.HeartbeatAlive() {
 			t.Fatalf("minuto %d: heartbeat muerto en fase %s", m, w.Phase())
 		}
@@ -194,5 +195,26 @@ func TestT1306PressureBounceKeepsPauseFloor(t *testing.T) {
 	w.Observe(low)
 	if !w.Admit() {
 		t.Fatalf("cumplido el suelo (resumeAt=%v) las admisiones debian reabrirse", w.ResumeAt())
+	}
+}
+
+// H3: HeartbeatAlive ya no responde true por decreto. Sin latido fresco
+// dentro de la ventana, el control se reporta muerto.
+func TestHeartbeatAliveVenceSinLatidos(t *testing.T) {
+	w, clk, _, _ := newWmFixture(t)
+	if w.HeartbeatAlive() {
+		t.Fatal("sin ninguna marca debe ser false")
+	}
+	w.MarkHeartbeat()
+	if !w.HeartbeatAlive() {
+		t.Fatal("con marca fresca debe ser true")
+	}
+	clk.Advance(HeartbeatAliveWindow + time.Second)
+	if w.HeartbeatAlive() {
+		t.Fatal("pasada la ventana debe ser false")
+	}
+	w.MarkHeartbeat()
+	if !w.HeartbeatAlive() {
+		t.Fatal("un latido nuevo debe revivir la marca")
 	}
 }
