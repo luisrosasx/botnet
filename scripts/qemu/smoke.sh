@@ -102,6 +102,19 @@ if [ "$qemu_count" -eq 6 ] && [ "${FORCE_DOUBLE:-}" != "--doble" ]; then
     # pico y se le descuenta la linea base de qemu con un binario trivial,
     # para acercarse al footprint del agente (3,1 MB son de hardware real).
     base=0
+    # La sonda se construye si falta: sin línea base, el RSS medido es el del
+    # emulador y la puerta de 3,1 MB sería inalcanzable por construcción.
+    if [ ! -x "$DIST/raw/probe-$tag" ] && command -v go >/dev/null 2>&1; then
+      mkdir -p "$DIST/raw"
+      case "$tag" in
+        mipsbe) GOARCHV=mips; GOARMV="" ;;
+        mipsle) GOARCHV=mipsle; GOARMV="" ;;
+        armv5)  GOARCHV=arm; GOARMV=5 ;;
+        armv7)  GOARCHV=arm; GOARMV=7 ;;
+        *)      GOARCHV="$tag"; GOARMV="" ;;
+      esac
+      env GOOS=linux GOARCH="$GOARCHV" ${GOARMV:+GOARM="$GOARMV"} CGO_ENABLED=0         go build -trimpath -ldflags "-s -w" -o "$DIST/raw/probe-$tag" ./scripts/qemu/probe 2>/dev/null || true
+    fi
     if [ -x "$DIST/raw/probe-$tag" ]; then
       "$q" "$DIST/raw/probe-$tag" >/dev/null 2>&1 &
       pp=$!

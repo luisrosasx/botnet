@@ -93,6 +93,12 @@ for tag in $tags; do
     upx --lzma --best -q "$out" >/dev/null
     upx -t "$out" >/dev/null # gate: upx valida el empaquetado; rompe => fallo
   fi
+  # Copia desempaquetada: el stub UPX no sobrevive a qemu-user y el gate de
+  # emulación la necesita (S-04). El artefacto entregado sigue empaquetado.
+  if command -v upx >/dev/null 2>&1; then
+    mkdir -p "$ROOT/dist/raw"
+    upx -d "$out" -o "$ROOT/dist/raw/$(basename "$out")" >/dev/null 2>&1 || true
+  fi
   size=$(size_bytes "$out")
   mb=$(awk -v s="$size" 'BEGIN{printf "%.2f", s/1000000}')
   max=$MAX_F1
