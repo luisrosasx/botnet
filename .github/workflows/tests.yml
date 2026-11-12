@@ -29,12 +29,6 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 20
-      nats:
-        image: nats:2
-        ports: ["14233:4222"]
-        options: >-
-          --health-cmd "wget -qO- http://127.0.0.1:8222/healthz || exit 1"
-          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       DATABASE_URL: postgres://botnet@127.0.0.1:5433/botnet?sslmode=disable
       REDIS_URL: redis://127.0.0.1:16379/9
@@ -47,7 +41,16 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Esperar motores
+      # nats va aparte: como servicio no puede recibir -js (JetStream) ni abrir
+      # el puerto de monitorización que usaría el healthcheck.
+      - name: Levantar NATS con JetStream
+        run: |
+          docker run -d --name nats -p 14233:4222 nats:2 -js -m 8222
+          for i in $(seq 1 30); do
+            curl -fs http://127.0.0.1:8222/healthz && break
+            sleep 1
+          done
+      - name: Esperar Postgres
         run: |
           for i in $(seq 1 60); do
             pg_isready -h 127.0.0.1 -p 5433 -U botnet && break

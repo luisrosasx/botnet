@@ -120,13 +120,13 @@ verificación que rechaza una firma alterada en un bit, `botctl status` con asse
 | Criterios PASS | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}PASS' docs/verification/*.md \| wc -l` | 306 |
 | Criterios FAIL | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}FAIL' docs/verification/*.md \| wc -l` | 0 |
 | Ficheros Go | `find . -name '*.go' -not -path './.git/*' \| wc -l` | 269 |
-| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + \| wc -l` | 38787 |
+| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + \| wc -l` | 38786 |
 | Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 402 |
 | Paquetes Go | `go list ./... \| wc -l` | 47 |
 | Informes de verificación | `ls docs/verification/*.md \| wc -l` | 14 |
 | Runbooks | `ls docs/runbooks/*.md \| wc -l` | 20 |
 | Migraciones | `ls migrations/*.sql \| wc -l` | 9 |
-| Commits | `git rev-list --count HEAD` | 16 |
+| Commits | `git rev-list --count HEAD` | 22 |
 | Ficheros versionados | `git ls-files \| wc -l` | 537 |
 | Entradas sin trackear | `git status --short --untracked-files=all \| wc -l` | 0 |
 
