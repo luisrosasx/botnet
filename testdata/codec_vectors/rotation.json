@@ -1,0 +1,26 @@
+[
+  {
+    "codec_ver": 1,
+    "pad_hex": "1122334455",
+    "frame_hex": "0102a0a1a2a3a4a5a6a7a8a9aaabacadaeaf0102030400001267000151800007007d0a626f74642f302e352e31051122334455",
+    "fields": {
+      "seq": 16909060,
+      "rss_kib": 4711,
+      "uptime_s": 86400,
+      "streams": 7,
+      "loss_bps": 125
+    }
+  },
+  {
+    "codec_ver": 2,
+    "pad_hex": "1122334455",
+    "frame_hex": "0202a0a1a2a3a4a5a6a7a8a9aaabacadaeaf000151800007007d00001267010203040a626f74642f302e352e31051122334455",
+    "fields": {
+      "seq": 16909060,
+      "rss_kib": 4711,
+      "uptime_s": 86400,
+      "streams": 7,
+      "loss_bps": 125
+    }
+  }
+]
