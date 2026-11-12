@@ -15,10 +15,10 @@ import (
 // "capture" del criterio sin tshark (asserts sobre registros TLS).
 type recorder struct {
 	net.Conn
-	mu   sync.Mutex
-	buf  bytes.Buffer
+	mu     sync.Mutex
+	buf    bytes.Buffer
 	closed chan struct{}
-	once sync.Once
+	once   sync.Once
 }
 
 func (r *recorder) Read(p []byte) (int, error) {

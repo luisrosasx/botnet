@@ -23,8 +23,8 @@ import (
 
 	"github.com/botnet/botnet/cmd/botnet-api/repo"
 	"github.com/botnet/botnet/internal/backend"
-	"github.com/botnet/botnet/internal/db"
 	"github.com/botnet/botnet/internal/backend/testenv"
+	"github.com/botnet/botnet/internal/db"
 )
 
 func gwLog(buf *bytes.Buffer) *slog.Logger {

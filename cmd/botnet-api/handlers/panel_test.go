@@ -32,7 +32,7 @@ func panelSetup(t *testing.T) (context.Context, *sql.DB, *fiber.App, string) {
 	}
 	testenv.SeedQuota(t, db, tenantID, 50, 40)
 	testenv.SeedKey(t, db, tenantID, "bk_panel_key")
-	app := NewApp(&Deps{Repo: repo.New(db), RDB: rdb, Keys: backend.NewApiKeyCache(rdb, repo.New(db), 300 * time.Second)})
+	app := NewApp(&Deps{Repo: repo.New(db), RDB: rdb, Keys: backend.NewApiKeyCache(rdb, repo.New(db), 300*time.Second)})
 	return ctx, db, app, tenantID
 }
 

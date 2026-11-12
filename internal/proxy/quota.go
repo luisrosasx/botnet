@@ -104,10 +104,10 @@ type CloseSink interface {
 
 // Registry lleva las sesiones vivas por id y por tenant.
 type Registry struct {
-	mu        sync.Mutex
-	byID      map[string]*Session
-	byTenant  map[string]map[string]*Session
-	sink CloseSink
+	mu       sync.Mutex
+	byID     map[string]*Session
+	byTenant map[string]map[string]*Session
+	sink     CloseSink
 }
 
 // NewRegistry crea el registro; sink puede ser nil (solo GOAWAY).
@@ -194,12 +194,12 @@ type EventSource interface {
 // contadores. La puerta completa (evento → stream liberado) se mide en
 // el test y queda muy por debajo de los 60 s del SLA.
 type Guard struct {
-	reg       *Registry
-	reader    StateReader
-	now       func() time.Time
-	cacheTTL  time.Duration
-	mu        sync.Mutex
-	cached    map[string]cacheEntry
+	reg      *Registry
+	reader   StateReader
+	now      func() time.Time
+	cacheTTL time.Duration
+	mu       sync.Mutex
+	cached   map[string]cacheEntry
 }
 
 type cacheEntry struct {

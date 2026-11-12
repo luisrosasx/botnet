@@ -16,10 +16,10 @@ import (
 const vectorsPath = "../../testdata/codec_vectors/rotation.json"
 
 type rotationVector struct {
-	Version uint8  `json:"codec_ver"`
-	PadHex  string `json:"pad_hex"`
+	Version  uint8  `json:"codec_ver"`
+	PadHex   string `json:"pad_hex"`
 	FrameHex string `json:"frame_hex"`
-	Fields  struct {
+	Fields   struct {
 		Seq     uint32 `json:"seq"`
 		RssKiB  uint32 `json:"rss_kib"`
 		UptimeS uint32 `json:"uptime_s"`
@@ -147,7 +147,7 @@ func ensureVectors(t *testing.T, pad, hv1, hv2 []byte) {
 	}
 	docs := make([]rotationVector, 0, 2)
 	for _, item := range []struct {
-		ver  uint8
+		ver   uint8
 		frame []byte
 	}{{Version, hv1}, {Version2, hv2}} {
 		d := rotationVector{Version: item.ver, PadHex: hex.EncodeToString(pad), FrameHex: hex.EncodeToString(item.frame)}

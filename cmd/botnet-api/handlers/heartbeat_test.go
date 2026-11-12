@@ -171,4 +171,3 @@ func TestWebhookStripeAlias(t *testing.T) {
 			codes["/v1/webhooks/stripe"], codes["/v1/billing/webhook"])
 	}
 }
-

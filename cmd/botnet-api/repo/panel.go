@@ -7,8 +7,8 @@ package repo
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"

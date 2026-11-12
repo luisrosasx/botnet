@@ -46,10 +46,10 @@ type KeyStore interface {
 // arrancar y Postgres solo es fuente de verdad fria: una validacion fria
 // son exactamente 1 query y las siguientes, 0.
 type ApiKeyCache struct {
-	rdb    *redis.Client
-	store  KeyStore
-	ttl    time.Duration
-	warmed atomic.Bool
+	rdb     *redis.Client
+	store   KeyStore
+	ttl     time.Duration
+	warmed  atomic.Bool
 	missTTL time.Duration // cache negativo: claves basura no martillan Postgres
 }
 

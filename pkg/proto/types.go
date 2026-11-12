@@ -356,7 +356,7 @@ func (m *SocksGreeting) Unmarshal(data []byte) error {
 // SocksRequest es la petición CONNECT del SOCKS5 interno (§7); el gateway
 // deniega las ranges LAN antes de abrir stream.
 type SocksRequest struct {
-	Command uint8 // 0x01 CONNECT
+	Command uint8  // 0x01 CONNECT
 	Address string // host o IP de destino
 	Port    uint16
 }

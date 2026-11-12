@@ -12,7 +12,7 @@ import (
 func TestPerSessionCountersSplitAndFlush(t *testing.T) {
 	tbl := NewCounterTable()
 	// fixture 10 MB partidos 60/40 entre sesiones (in+out total)
-	tbl.AddIn("sess-A", 3_600_000) // 3,6 MB
+	tbl.AddIn("sess-A", 3_600_000)  // 3,6 MB
 	tbl.AddOut("sess-A", 2_400_000) // 2,4 MB -> A = 6 MB (60 %)
 	tbl.AddIn("sess-B", 2_400_000)
 	tbl.AddOut("sess-B", 1_600_000) // B = 4 MB (40 %)

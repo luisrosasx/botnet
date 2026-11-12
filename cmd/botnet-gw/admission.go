@@ -32,11 +32,11 @@ func ClassCap(class byte) (int, bool) {
 type AdmissionReason string
 
 const (
-	AdmitOK         AdmissionReason = "ok"
-	AdmitClassCap   AdmissionReason = "class_cap"
+	AdmitOK          AdmissionReason = "ok"
+	AdmitClassCap    AdmissionReason = "class_cap"
 	AdmitTenantQuota AdmissionReason = "tenant_quota"
-	AdmitTenantFan  AdmissionReason = "tenant_fanout"
-	AdmitUnknownCls AdmissionReason = "unknown_class"
+	AdmitTenantFan   AdmissionReason = "tenant_fanout"
+	AdmitUnknownCls  AdmissionReason = "unknown_class"
 )
 
 // AdmissionPolicy gobierna la stream `(tenantStreams+1)`-ésima sobre un

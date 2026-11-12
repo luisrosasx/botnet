@@ -27,7 +27,7 @@ func TestEnrollRequestRoundTrip(t *testing.T) {
 
 func TestEnrollResponseRoundTrip(t *testing.T) {
 	in := EnrollResponse{
-		Slug: "k7qz2m4x9p1r",
+		Slug:    "k7qz2m4x9p1r",
 		CertPEM: []byte("cert"), CAPEM: []byte("ca"),
 		Rendezvous: []string{"rdv1.botnet.example:443", "rdv2.botnet.example:443"},
 		TTLS:       86400,

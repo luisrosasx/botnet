@@ -18,15 +18,15 @@ func TestParseAndLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
-		ip   string
-		asn  uint32
-		ok   bool
+		ip  string
+		asn uint32
+		ok  bool
 	}{
-		{"10.2.3.4", 64496, true},   // cae en el /8
-		{"10.1.9.9", 64497, true},   // el /16 gana al /8
-		{"10.1.2.5", 64498, true},   // el /24 gana a ambos
-		{"192.0.2.7", 64500, true},  // host suelto = /32
-		{"192.0.2.8", 0, false},     // fuera de toda tabla
+		{"10.2.3.4", 64496, true},  // cae en el /8
+		{"10.1.9.9", 64497, true},  // el /16 gana al /8
+		{"10.1.2.5", 64498, true},  // el /24 gana a ambos
+		{"192.0.2.7", 64500, true}, // host suelto = /32
+		{"192.0.2.8", 0, false},    // fuera de toda tabla
 		{"2001:db8::1", 0, false},  // v6 no tabulada
 	}
 	for _, c := range cases {
