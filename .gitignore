@@ -9,3 +9,6 @@
 !docs/verification/evidence/*.log
 # rutas malformadas que deja algún test en Windows
 UsersLAngeAppDataLocalTemp*
+
+# artefactos de arranque local de headscale (clave y sqlite)
+/deploy/headscale/var/

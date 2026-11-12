@@ -119,14 +119,14 @@ verificación que rechaza una firma alterada en un bit, `botctl status` con asse
 | Criterios de aceptación | `grep -rhE '^\s+[0-9]+\. ' docs/blueprint/TASKS/*.md \| wc -l` | 306 |
 | Criterios PASS | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}PASS' docs/verification/*.md \| wc -l` | 306 |
 | Criterios FAIL | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}FAIL' docs/verification/*.md \| wc -l` | 0 |
-| Ficheros Go | `find . -name '*.go' -not -path './.git/*' \| wc -l` | 278 |
-| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + \| wc -l` | 39515 |
-| Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 417 |
+| Ficheros Go | `find . -name '*.go' -not -path './.git/*' \| wc -l` | 280 |
+| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + \| wc -l` | 39766 |
+| Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 422 |
 | Paquetes Go | `go list ./... \| wc -l` | 49 |
 | Informes de verificación | `ls docs/verification/*.md \| wc -l` | 14 |
 | Runbooks | `ls docs/runbooks/*.md \| wc -l` | 20 |
 | Migraciones | `ls migrations/*.sql \| wc -l` | 9 |
-| Commits | `git rev-list --count HEAD` | 25 |
+| Commits | `git rev-list --count HEAD` | 29 |
 | Ficheros versionados | `git ls-files \| wc -l` | 536 |
 | Entradas sin trackear | `git status --short --untracked-files=all \| wc -l` | 0 |
 

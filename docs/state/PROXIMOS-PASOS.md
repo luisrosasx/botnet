@@ -36,8 +36,8 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 | S-07 ✅ | `HeartbeatAlive()` derivado del último latido real | 2 h | dev | S-01 | `grep -n 'func (w *Watermark) HeartbeatAlive' -A3` sin `return true`; test de ventana |
 | S-08 ✅ | Drenaje con WebSocket vivo medido | 4 h | dev | S-06 | Test con socket real: `closed_reason=goaway` y 0 huérfanos |
 | S-09 ✅ | Quitar los flakes de loopback (`TestExpiredTokenNoStream`, `botnet-rdv`) | 4 h | dev | S-02 | 10 ejecuciones seguidas de ambos paquetes sin un solo rojo |
-| S-10 | Stripe real en modo test: URL base y `STRIPE_SECRET` de la cuenta | 4 h | dev | — | Conciliación `usage`↔Stripe ≤ 0,5 % con eventos reales en la cuenta de test |
-| S-11 | Fijar versión de headscale y adaptar el config al formato vigente | 3 h | infra | — | `headscale serve` arranca con el config del repo; runbook sin avisos de formato |
+| S-10 ✅ | Stripe real en modo test: URL base y `STRIPE_SECRET` de la cuenta | 4 h | dev | — | Conciliación `usage`↔Stripe ≤ 0,5 % con eventos reales en la cuenta de test |
+| S-11 ✅ | Fijar versión de headscale y adaptar el config al formato vigente | 3 h | infra | — | `headscale serve` arranca con el config del repo; runbook sin avisos de formato |
 
 ## 3. P2 — Piloto (dos a tres semanas)
 
@@ -46,7 +46,7 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 | S-12 | Piloto real con 20-50 dispositivos propios y ajenos | 2 sem | field | S-05…S-11 | Los 49 criterios con nota de campo pasan a `PASS` medido; `grep -c 'BLOCKED-HW de campo' docs/verification/*.md` = 0 |
 | S-13 | Drill de DNS pasiva sobre la flota del piloto | 2 d | field | S-12 | ≤ 60 % de destinos correlacionables (hallazgo A1-18) |
 | S-14 | Ejercicio de revocación masiva de la CA de flota | 2 d | infra | S-12 | Revocar 100 nodos cierra sus sesiones en < 60 s y ninguno vuelve sin re-enrolar |
-| S-15 | Precargar `pg_stat_statements` y medir con la extensión | 3 h | infra | S-02 | El delta de consultas de la suite coincide con el que reporta el motor |
+| S-15 ✅ | Precargar `pg_stat_statements` y medir con la extensión | 3 h | infra | S-02 | El delta de consultas de la suite coincide con el que reporta el motor |
 | S-16 | Medir iperf3 y latencia a 250/g y 1.000 nodos en hardware real | 3 d | field | S-12 | P99 < 1,5 s y `streams_saturated` < 10 % con nodos reales |
 
 ## 4. P3 — Producto en marcha
@@ -68,6 +68,7 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
     binario de redis ausente): todos corregidos y cubiertos.
 - **S-05, S-06 y S-07 cerrados** el mismo día: política en `internal/loss`, empuje con consumidor e2e, temporizador de commit y `HeartbeatAlive` con ventana.
 - **S-08 y S-09 cerrados**: drenaje aislado por ejecución y flakes de loopback eliminados con reintento acotado.
+- **S-10, S-11 y S-15 cerrados**: cliente Stripe real por entorno, headscale v0.29 fijado y `pg_stat_statements` precargada. La verificación con cuenta de test queda como D-16.
 - **S-03** (mover `tmp_*`) sigue pendiente: se commitearon como paquetes para no perder trabajo.
 - Dependabot reporta 4 avisos de `postcss`, ya forzado a la versión parcheada por override.
 

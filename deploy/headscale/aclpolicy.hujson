@@ -5,6 +5,9 @@
   // clientes: SSH desde un cliente hacia la malla es timeout
   // (A2-11: WG = operaciones, punto).
 
+  // v0.29: el reparto de puertos de cliente vive en la política.
+  "randomizeClientPort": true,
+
   "tagOwners": {
     // El bastion de operaciones (unico src aceptado).
     "tag:ops-bastion": ["group:ops-owners"],

@@ -127,3 +127,22 @@ con dobles (`deploy/headscale/mesh_config_test.go`,
 `internal/agent/mesh_test.go`) y los scripts llevan modo doble. Al
 montar el bastión real: correr los tres comandos de arriba y anclar
 salidas aquí.
+
+## Versión fijada (S-11)
+
+El bastión corre **la versión de `deploy/headscale/VERSION`** y no otra: la
+malla es plano de operaciones y una subida accidental rompe la cadena de
+arranque sin avisar.
+
+v0.29 rompió el formato anterior. Lo migrado en este repo:
+
+| Antes (v0.23-0.26) | Ahora (v0.29) |
+|---|---|
+| `randomize_client_port` en config | `randomizeClientPort` en el fichero de política |
+| `prefixes.v6: native` | prefijo explícito (`fd7a:115c:a1e0::/48`) |
+| sin bloque `noise` | `noise.private_key_path` obligatorio |
+| `database.driver/host/name` | `database.type` + `database.sqlite.path` |
+
+La clave de ruido y el sqlite viven fuera del repo en el bastión
+(`/var/lib/headscale`, 0600 y 0700); aquí solo se versiona el config y la
+política. Arranque comprobado en local con `headscale -c deploy/headscale/config.yaml serve`.

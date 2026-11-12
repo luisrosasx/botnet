@@ -47,3 +47,20 @@ segunda capa de margen.
 Si el nodo y el gateway discrepan, **gana el nodo** y se factura; la
 conciliación diaria (`cmd/botnet-api/jobs`) abre ticket si el desvío
 pasa del 0,5 %, pero el cobro nunca se bloquea.
+
+## Medir con el motor (S-15)
+
+El compose precarga `pg_stat_statements` (`shared_preload_libraries`). Para
+repetir la puerta del cache de api keys con el motor y no con el contador
+del wrapper:
+
+```bash
+psql "$DATABASE_URL" -c "SELECT pg_stat_statements_reset()"
+# ... 1 validación en frío y 1.000 en caliente ...
+psql "$DATABASE_URL" -c \
+  "SELECT count(*) FROM pg_stat_statements WHERE query LIKE '%FROM api_keys%'"
+```
+
+El delta debe ser exactamente 1. En el cluster portable del host Windows
+la extensión no está disponible: allí la medida sigue siendo
+`internal/db.Counted`, que cuenta la misma ida (limitación L-07).
