@@ -21,14 +21,9 @@ jobs:
           cache: true
       - name: qemu-user
         run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-user upx-ucl
+      # build_matrix ya deja dist/raw (copias desempaquetadas) para el emulador.
       - name: Matriz con topes por clase
         run: bash scripts/cross/build_matrix.sh
-      - name: ELF desempaquetados para emulación
-        run: |
-          mkdir -p dist/raw
-          for t in amd64 arm64 armv5 armv7 mipsbe mipsle; do
-            upx -d "dist/botd-$t" -o "dist/raw/botd-$t" >/dev/null
-          done
       - name: Gate de emulación 6/6
         run: DIST=dist bash scripts/qemu/smoke.sh
       - name: Subir evidencia
