@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testAssigner(t *testing.T) *Assigner {
@@ -19,11 +20,22 @@ func quietLog() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
+// getJSON pide /rdv/assign. Reintenta el dial: httptest anuncia la URL
+// antes de que el listener acepte de forma fiable y en loopback Windows
+// la primera conexión se cae (dial/wsarecv) con una sola tentativa.
 func getJSON(t *testing.T, url string) map[string]any {
 	t.Helper()
-	resp, err := http.Get(url + "/rdv/assign")
+	var resp *http.Response
+	var err error
+	for i := 0; i < 20; i++ {
+		resp, err = http.Get(url + "/rdv/assign")
+		if err == nil {
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("assign tras 20 intentos: %v", err)
 	}
 	defer resp.Body.Close()
 	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {

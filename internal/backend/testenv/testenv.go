@@ -139,7 +139,12 @@ func execRetry(ctx context.Context, db *sql.DB, q string) error {
 // repo; cualquier otro error es de verdad y el test debe fallar.
 func isEngineDial(err error) bool {
 	msg := err.Error()
-	for _, needle := range []string{"failed to connect", "dial tcp", "bad connection", "conn closed", "context deadline exceeded"} {
+	// "wsarecv"/"forcibly closed": el motor portable corta conexiones ya
+	// establecidas bajo carga; sin estos patrones el reintento no actúa y
+	// el test se pone rojo por el motor.
+	for _, needle := range []string{"failed to connect", "dial tcp", "bad connection",
+		"conn closed", "context deadline exceeded", "wsarecv", "forcibly closed",
+		"connection reset", "unexpected EOF"} {
 		if strings.Contains(msg, needle) {
 			return true
 		}

@@ -34,8 +34,8 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 | S-05 ✅ | Cablear `PushLossOnHeartbeat`/`BuildLossPush` en el bucle del gateway y consumirlo en el agente | 1 d | dev | S-01 | Test e2e: pérdida inyectada → frame `LossPush` → nodo reduce conexiones; `grep -rn 'PushLossOnHeartbeat('` con llamante fuera de su paquete |
 | S-06 ✅ | Temporizador de `CommitAfter` sobre latidos sanos | 4 h | dev | S-01 | Test con reloj falso: 5 min sanos → `update=commit`; nodo inestable no commitea |
 | S-07 ✅ | `HeartbeatAlive()` derivado del último latido real | 2 h | dev | S-01 | `grep -n 'func (w *Watermark) HeartbeatAlive' -A3` sin `return true`; test de ventana |
-| S-08 | Drenaje con WebSocket vivo medido | 4 h | dev | S-06 | Test con socket real: `closed_reason=goaway` y 0 huérfanos |
-| S-09 | Quitar los flakes de loopback (`TestExpiredTokenNoStream`, `botnet-rdv`) | 4 h | dev | S-02 | 10 ejecuciones seguidas de ambos paquetes sin un solo rojo |
+| S-08 ✅ | Drenaje con WebSocket vivo medido | 4 h | dev | S-06 | Test con socket real: `closed_reason=goaway` y 0 huérfanos |
+| S-09 ✅ | Quitar los flakes de loopback (`TestExpiredTokenNoStream`, `botnet-rdv`) | 4 h | dev | S-02 | 10 ejecuciones seguidas de ambos paquetes sin un solo rojo |
 | S-10 | Stripe real en modo test: URL base y `STRIPE_SECRET` de la cuenta | 4 h | dev | — | Conciliación `usage`↔Stripe ≤ 0,5 % con eventos reales en la cuenta de test |
 | S-11 | Fijar versión de headscale y adaptar el config al formato vigente | 3 h | infra | — | `headscale serve` arranca con el config del repo; runbook sin avisos de formato |
 
@@ -67,6 +67,7 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
     Windows, permisos de directorio, `INVOCATION_ID` pisando `BOTNET_PERSIST`, esquema sin migrar y
     binario de redis ausente): todos corregidos y cubiertos.
 - **S-05, S-06 y S-07 cerrados** el mismo día: política en `internal/loss`, empuje con consumidor e2e, temporizador de commit y `HeartbeatAlive` con ventana.
+- **S-08 y S-09 cerrados**: drenaje aislado por ejecución y flakes de loopback eliminados con reintento acotado.
 - **S-03** (mover `tmp_*`) sigue pendiente: se commitearon como paquetes para no perder trabajo.
 - Dependabot reporta 4 avisos de `postcss`, ya forzado a la versión parcheada por override.
 

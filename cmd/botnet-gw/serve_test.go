@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -128,7 +129,9 @@ func TestGWServeDrainGOAWAYStreamVivo(t *testing.T) {
 
 	tenant := testenv.SeedTenant(t, db, "gw-drain-tenant")
 	node := seedGwNode(t, db)
-	gwID := "gw-es-mad-test"
+	// gwID unico por ejecucion: con -count el mismo valor reutilizaba
+	// DrainKey y las filas del ciclo anterior.
+	gwID := "gw-es-mad-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	sids := make([]int64, 0, 3)
 	for i := 0; i < 3; i++ {
 		sids = append(sids, insertLiveSession(t, db, ctx, node, tenant, gwID))
