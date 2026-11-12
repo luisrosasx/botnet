@@ -1,0 +1,36 @@
+{
+  // aclpolicy de la malla de operaciones (EP-07 T-0701 AC3 / T-0702).
+  // Regla dura: el UNICO trafico enrutable por la malla es SSH de
+  // operaciones desde el bastion. Nada entra desde el rango de
+  // clientes: SSH desde un cliente hacia la malla es timeout
+  // (A2-11: WG = operaciones, punto).
+
+  "tagOwners": {
+    // El bastion de operaciones (unico src aceptado).
+    "tag:ops-bastion": ["group:ops-owners"],
+    // Nodos con tun enrolados al mesh; clase C sin tun jamas recibe
+    // esta etiqueta y no pierde producto (T-0701 AC2).
+    "tag:node": ["group:ops-owners"]
+  },
+
+  "groups": {
+    "group:ops-owners": ["admin@botnet"]
+  },
+
+  "acls": [
+    // SSH de operaciones: bastion -> nodo, puerto 22, y nada mas.
+    // El acceso entra por el tunel WG: el nodo no abre listeners
+    // publicos nuevos (T-0702 AC2).
+    {
+      "action": "accept",
+      "proto": "tcp",
+      "src": ["tag:ops-bastion"],
+      "dst": ["tag:node:22"]
+    }
+    // Sin regla tag:client -> tag:node: el rango de clientes no
+    // enruta a la malla; cualquier intento de SSH desde el rango
+    // cliente termina en timeout (T-0701 AC3).
+    // Sin regla tag:node -> tag:node: los nodos no se barrean entre
+    // si por la malla; el dato cabalga la unica TLS/H2 saliente.
+  ]
+}

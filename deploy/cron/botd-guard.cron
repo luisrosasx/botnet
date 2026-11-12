@@ -1,0 +1,7 @@
+# T-0503 (A1-04, A1-14): UNA sola linea `* * * * *` hace de @reboot y
+# de guard. Tras reboot no hay pidfile vivo: el primer tick del guard
+# relanza al padre; en reposo, el guard solo actua si el pidfile no
+# responde (0 procesos extra con agente sano). `botd optout` la borra
+# por su marker sin root. La linea entera es la evidencia en disco:
+# la menor posible del diseno.
+* * * * * /data/botd/botd --guard >/dev/null 2>&1 # botd-guard

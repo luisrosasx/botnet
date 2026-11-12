@@ -1,0 +1,12 @@
+# stub botnet-gw: binario estatico CGO_ENABLED=0 (BLUEPRINT parrafo 2).
+FROM golang:1.27 AS build
+WORKDIR /src
+COPY go.mod ./
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY pkg/ ./pkg/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/botnet-gw ./cmd/botnet-gw
+
+FROM scratch
+COPY --from=build /out/botnet-gw /botnet-gw
+ENTRYPOINT ["/botnet-gw"]

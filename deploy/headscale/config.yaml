@@ -1,0 +1,47 @@
+# headscale del bastion de operaciones (EP-07 T-0701, BLUEPRINT S8).
+# La malla es plano de operaciones best-effort: solo nodos con tun,
+# direcciones CGNAT 100.64/10, y ni un byte de plano de datos la cruza
+# (la regla de encapsulado vive en docs/runbooks/mesh.md).
+# Formato: YAML nativo de headscale v0.23-0.26 (claves planas).
+
+server_url: https://mesh.botnet.internal:8000
+
+# El API/metrics del propio headscale NUNCA escucha en 0.0.0.0 hacia la
+# interfaz externa: operaciones entra por WG, no por un puerto publico
+# (T-0702 AC2; el ss -ltn del bastion lo confirma).
+listen_addr: 127.0.0.1:8000
+metrics_listen_addr: 127.0.0.1:9090
+
+# Rango CGNAT exclusivo para la malla (assert T-0701 AC1:
+# `ip -4 addr | grep -c 100.64.`). No randomizar: la direccion del
+# nodo es estable y el runbook de SSH la usa como destino.
+prefixes:
+  v4: 100.64.0.0/10
+  v6: native
+
+randomize_client_port: false
+
+# Direccionamiento interno del bastion: los nodos se ven por nombre
+# magico sin montar DNS propio.
+dns:
+  magic_dns: mesh.internal
+  override_local_dns: false
+
+# La politica vive en hujson versionado junto a este fichero; el test
+# deploy/headscale/mesh_config_test.go la valida sin motor.
+policy_path: ./aclpolicy.hujson
+
+# Best-effort: sin logtail ni DERP exotico; cae headscale y la flota
+# no se entera (dominio de fallo acotado, leccion del hub de P3).
+logtail:
+  enabled: false
+
+database:
+  driver: sqlite3
+  host: ""
+  name: /var/lib/headscale/db.sqlite3
+
+derp:
+  server:
+    enabled: false
+  regions: []

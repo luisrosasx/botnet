@@ -1,0 +1,5 @@
+{
+  "input": { "nodes": 1000, "concurrency": 0.15, "mbps": 2 },
+  "claimed_egress_mbps": 3000,
+  "_comment_es": "Fixture con el error historico del factor 10 (los «~3 Gbps» de P3 para 1.000 nodos). La multiplicación honesta da 300; la hoja que reclama 3.000 debe hacer fallar la regresión de aggregate.test.mjs."
+}

@@ -1,0 +1,5 @@
+{
+  "input": { "nodes": 1000, "concurrency": 0.15, "mbps": 2 },
+  "claimed_egress_mbps": 300,
+  "_comment_es": "La hoja honesta: 1.000 nodos x 15 % de concurrencia x 2 Mbps = 300 Mbps de egreso (±20)."
+}

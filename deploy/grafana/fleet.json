@@ -1,0 +1,90 @@
+{
+  "uid": "botnet-fleet",
+  "title": "BOT.NET — salud de la flota (T-1202)",
+  "tags": ["botnet", "fleet", "heartbeat"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "_docs_es": {
+    "fuentes": "Redis en vivo (metricas del ultimo latido por nodo) y Postgres en historico; el heartbeat porta rss_kib, streams, loss_estimate y ver via hbcodec (BLUEPRINT §12). El nodo no expone puerto de scraping: todo entra por el tunel.",
+    "alerta_rss": "El panel RSS p99 lleva alerta configurada a 6 MB (techo del SLO §12); fleet.json versiona el umbral para que el cambio sea PR, no clic de UI.",
+    "frescura": "Inventario de versiones: el ver del latido debe coincidir con nodes.agent_version en < 1 heartbeat; una desviacion > 0 es inventario rancio, no latido perdido."
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "RSS p99 de la flota (MiB)",
+      "datasource": { "type": "postgres", "uid": "botnet-pg" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mibibytes",
+          "max": 8,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 6 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT ts, percentile_cont(0.99) WITHIN GROUP (ORDER BY rss_kib)/1024.0 AS rss_p99_mib FROM node_heartbeats WHERE $__timeFilter(ts) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "alert": {
+        "title": "RSS p99 sobre el techo del SLO",
+        "condition": "A",
+        "rules": [
+          { "column": "rss_p99_mib", "operator": { "type": "gt" }, "reducer": "avg", "evaluator": { "params": [6] } }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Streams activos (Redis vivo)",
+      "datasource": { "type": "redis", "uid": "botnet-redis" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "refId": "A", "command": "GET", "keyPattern": "fleet:streams:active" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Pérdida estimada (puntos básicos, p99)",
+      "datasource": { "type": "postgres", "uid": "botnet-pg" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT ts, percentile_cont(0.99) WITHIN GROUP (ORDER BY loss_estimate) AS loss_p99_bp FROM node_heartbeats WHERE $__timeFilter(ts) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Inventario de versiones (frescura < 1 heartbeat)",
+      "datasource": { "type": "postgres", "uid": "botnet-pg" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT n.agent_version AS ver, count(*) AS nodos, max(h.last_heartbeat) AS ultimo_latido, bool_and(h.last_agent_ver = n.agent_version) AS inventario_fresco FROM nodes n JOIN LATERAL (SELECT agent_version AS last_agent_ver, ts AS last_heartbeat FROM node_heartbeats h2 WHERE h2.node_id = n.node_id ORDER BY ts DESC LIMIT 1) h ON true GROUP BY n.agent_version ORDER BY nodos DESC"
+        }
+      ]
+    }
+  ]
+}

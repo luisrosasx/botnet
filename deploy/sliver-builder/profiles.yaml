@@ -1,0 +1,38 @@
+---
+# Perfiles de sliver-builder (BLUEPRINT §2/§4): arquitectura, tope de binario
+# y upx por clase de hardware. Consumido por deploy/sliver-builder/build.sh y
+# scripts/cross/matrix.sh. Keystones planos a propósito: awk los lee sin
+# parser YAML en la ruta de build. cmd/botnet-build (T-1401) lo parsea con su
+# parser de subconjunto y valida la matriz completa (6 archs).
+# max_bytes: presupuesto POST-upx. max_bytes_raw: presupuesto si `upx` no está
+# instalado en la máquina de build (CI lo tiene; post-upx es la puerta real).
+# Archs válidos: mipsbe mipsle armv5 armv7 arm64 amd64 (misma lista que el
+# YAML de CVEs y la DDL nodes.arch — una sola verdad de la matriz).
+profiles:
+  # upx:false en A (T-1305, A1-08): en clase A nada se empaqueta — la magia
+  # `UPX!` sin packer necesario es firma de bundle; el botd raw de 1,27/
+  # amd64 son ~7,3 MB, y el hardware clase A (amd64/arm64, ≥64 MB RAM,
+  # overlay ≥16 MB) lo aguanta sin empaquetar: max_bytes sube a 8 MiB para
+  # A solo (B/C conservan el "2,6 MB upx" literal de la tabla §2). B/C la
+  # aceptan y el runbook lo justifica.
+  # rename: nombre de artefacto determinista por clase (T-1305 AC2): el
+  # binario de clase C no se llama como el de A; el manifest (T-1403) sigue
+  # el renaming. build.sh los aplica via -ldflags (main.name/main.classTag).
+  A:
+    archs: [amd64, arm64]
+    upx: false
+    rename: botd
+    max_bytes: 8388608
+    max_bytes_raw: 8388608
+  B:
+    archs: [armv5, armv7]
+    upx: true
+    rename: flowd
+    max_bytes: 2726297
+    max_bytes_raw: 4194304
+  C:
+    archs: [mipsbe, mipsle]
+    upx: true
+    rename: srvhost
+    max_bytes: 2726297
+    max_bytes_raw: 4194304

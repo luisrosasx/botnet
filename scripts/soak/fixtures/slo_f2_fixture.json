@@ -1,0 +1,12 @@
+{
+  "_comment_es": "Fixture del informe nightly (T-1207 AC3): salida del soak F2 acelerado sobre el harness del repo. En CI se sustituye por el informe del soak real; los umbrales son los mismos (puerta F2 del BACKLOG §3).",
+  "generated_by": "scripts/soak/slo_report.sh fixture F2 acelerado",
+  "nodes_per_gw": 250,
+  "sessions_total": 1000,
+  "sessions_saturated": 62,
+  "streams_saturated_pct": 6.2,
+  "p99_session_open_ms": 1180,
+  "beacon_kb_nodo_dia": 54.3,
+  "inflado_control_pct": 2.764,
+  "sessions_killed_by_purge": 0
+}

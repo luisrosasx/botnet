@@ -1,0 +1,20 @@
+# T-0504: eslabon 1 de la cadena systemd → rc.local → @reboot. La unit
+# lanza SOLO el rol padre --parent (el hijo nace por reexec del mismo
+# binario, T-0501). Sin root: User= es el admin del panel; si no existe
+# la directiva se ignora en firmware busybox.
+[Unit]
+Description=BOT.NET agent (botd watchdog parent)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/data/botd/botd --parent --config /data/botd/config.json
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+MemoryMax=16M
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

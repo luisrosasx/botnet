@@ -1,0 +1,117 @@
+# Malla base del stack (BLUEPRINT parrafo 9): Postgres 16 + Redis 7 + NATS 2 con
+# JetStream + api/gw/rdv/web. Esqueleto: los Dockerfiles compilan los stubs de
+# cmd/; los healthchecks de infra son reales y los de app se endurecen con
+# /healthz en EP-08/EP-09. `docker compose -f deploy/docker-compose.yml up`
+# requiere `source scripts/env.sh` solo para el build local, no para el run.
+name: botnet
+
+networks:
+  control:
+  edge:
+
+volumes:
+  pgdata:
+  redisdata:
+  natsjs:
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: botnet
+      POSTGRES_USER: botnet
+      POSTGRES_PASSWORD: botnet # solo dev; en produccion entra como secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botnet -d botnet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [control]
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [control]
+
+  nats:
+    image: nats:2
+    # JetStream para NODE_STATE, acct.*.flush y ctl.*.cmd (BLUEPRINT parrafo 9).
+    command: ["nats-server", "--jetstream", "--store_dir", "/data", "--http_port", "8222"]
+    volumes:
+      - natsjs:/data
+    ports:
+      - "8222:8222" # monitor HTTP; sin shell en la imagen scratch, se sonda desde fuera
+    networks: [control]
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      BOTNET_ENV: production
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      nats: {condition: service_started}
+    healthcheck:
+      # Mientras el stub no abra puerto, la sonda es el propio binario.
+      test: ["CMD", "/botnet-api", "--version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [control, edge]
+    restart: unless-stopped
+
+  gw:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gw
+    depends_on:
+      redis: {condition: service_healthy}
+      nats: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "/botnet-gw", "--version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [control, edge]
+    restart: unless-stopped
+
+  rdv:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.rdv
+    depends_on:
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "/botnet-rdv", "--version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [control, edge]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    depends_on:
+      api: {condition: service_started}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [edge]
+    restart: unless-stopped

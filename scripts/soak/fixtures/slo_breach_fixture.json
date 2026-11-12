@@ -1,0 +1,12 @@
+{
+  "_comment_es": "Fixture NEGATIVA del soak F2: streams_saturated 12,4 % y p99 1.690 ms — el script debe salir 1 con ella. Prueba de que la puerta son scripts que fallan, no párrafos que consuelan.",
+  "generated_by": "scripts/soak/slo_report.sh fixture de ruptura",
+  "nodes_per_gw": 250,
+  "sessions_total": 1000,
+  "sessions_saturated": 124,
+  "streams_saturated_pct": 12.4,
+  "p99_session_open_ms": 1690,
+  "beacon_kb_nodo_dia": 131.0,
+  "inflado_control_pct": 6.1,
+  "sessions_killed_by_purge": 3
+}
