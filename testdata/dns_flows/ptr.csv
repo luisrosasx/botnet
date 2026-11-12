@@ -1,0 +1,6 @@
+prefix,domain
+198.51.100,gw1.edge.botnet.example
+198.51.101,rdv.edge.botnet.example
+203.0.113,edge2.botnet.example
+192.0.2,cdn.client-cdn.example
+192.0.3,shop.client-shop.example
