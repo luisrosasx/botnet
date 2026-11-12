@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-11-12T12:53:02Z",
+  "loss_pct": 1.5,
+  "conns": 2,
+  "sessions": 30,
+  "seconds": 600,
+  "ratio_p95_maxmin": 1.025,
+  "ratio_limit": 1.2,
+  "verdict": "aislado"
+}

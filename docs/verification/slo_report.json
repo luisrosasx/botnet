@@ -1,0 +1,11 @@
+{
+  "source": "scripts/soak/slo_report.sh fixture F2 acelerado",
+  "nodes_per_gw": 250,
+  "streams_saturated": 6.2,
+  "streams_saturated_limit_pct": 10,
+  "streams_saturated_ok": true,
+  "p99_session_open_ms": 1180,
+  "p99_session_open_limit_ms": 1500,
+  "p99_session_open_ok": true,
+  "gate_f2": true
+}

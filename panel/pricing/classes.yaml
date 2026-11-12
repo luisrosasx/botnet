@@ -1,0 +1,24 @@
+# panel/pricing/classes.yaml — T-1008 (cierra A2-13): precio por GB
+# por device_class. La clase debil (2 Mbps, MIPS) vende menos GB y SE
+# PRECIA — no se regala: el ratio clase C / clase A es >= 1,3x. Es la
+# hoja que lee el panel del tenant al cotizar; la aritmetica la audita
+# scripts/budget/margin.mjs.
+currency: USD
+price_per_gb:
+  A: 0.24
+  B: 0.27
+  C: 0.32
+ratio_C_A: 1.33 # 0.32 / 0.24 >= 1.3 (aserto del script)
+# Capacidad de venta por clase (GB/mes) con el tope publicado de
+# 150 GB/nodo (A2-20) y el ancho util: A 5 Mbps, B 3 Mbps, C 2 Mbps.
+gb_capacity_month:
+  A: 150
+  B: 90
+  C: 45
+# El pool (T-0904) pondera por bw_mbps MEDIDO, no declarado: el
+# selector usa la muestra de heartbeat/rss, y margin.mjs aserta la
+# correlacion bw_mbps_medido vs peso de reparto.
+bw_mbps:
+  A: 5
+  B: 3
+  C: 2

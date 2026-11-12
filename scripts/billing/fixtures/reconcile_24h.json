@@ -1,0 +1,7 @@
+{
+  "day": "2026-11-09",
+  "usage_bytes": 812345678901,
+  "sessions_bytes": 809246000000,
+  "stripe_gb": 808.93,
+  "_comment": "fixture EP-11 T-1104: 24 h con desvios 0,38 % (gateway) y 0,42 % (Stripe) — bajo la tolerancia unica de 0,5 %"
+}

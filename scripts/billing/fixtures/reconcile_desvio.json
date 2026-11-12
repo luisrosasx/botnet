@@ -1,0 +1,7 @@
+{
+  "day": "2026-11-09",
+  "usage_bytes": 500000000000,
+  "sessions_bytes": 496500000000,
+  "stripe_gb": 500.0,
+  "_comment": "fixture EP-11 T-1104: desvio 0,7 % gateway↔usage — alarma, cobro no bloqueado"
+}

@@ -1,0 +1,9 @@
+ok   amd64 endianness magic LE OK
+ok   arm64 endianness magic LE OK
+ok   armv5 endianness magic LE OK
+ok   armv7 endianness magic LE OK
+ok   mipsbe endianness magic BE OK
+ok   mipsle endianness magic LE OK
+info mipsbe RSS pico 8964 KiB, base qemu 7824 KiB, delta agente 1140 KiB (tope 3174)
+info mipsle RSS pico 8972 KiB, base qemu 7844 KiB, delta agente 1128 KiB (tope 3174)
+qemu-smoke: OK 6/6 archs enrolan y laten (<60 s) RSS<=3,1 MB core=0
