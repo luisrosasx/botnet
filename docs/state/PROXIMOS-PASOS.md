@@ -22,10 +22,10 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 
 | # | Paso | Coste | Rol | Depende | Criterio de cierre |
 |---|---|---|---|---|---|
-| S-01 | Commit inicial del árbol completo y acotar `.gitignore` (`*.exe` → `/dist/*.exe`) | 2 h | dev | — | `git status --short` vacío; `git log --oneline` con ≥1 commit; `git ls-files \| wc -l` ≥ 500 |
-| S-02 | CI con los dos gates, `-p 1`, motores como servicios y cache de módulos | 4 h | infra | S-01 | Pipeline verde en el primer push y rojo si se rompe un test a propósito |
-| S-03 | Mover `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` a `testdata/doubles/` | 1 h | dev | S-01 | `go list ./...` sin entradas `tmp_*`; suite completa verde |
-| S-04 | Generar `dist/raw/` dentro de `build_matrix.sh` cuando exista `upx` | 1 h | dev | — | `bash scripts/cross/build_matrix.sh` deja `dist/raw` con 6 binarios y el smoke pasa sin preparación manual |
+| S-01 ✅ | Commit inicial del árbol completo y acotar `.gitignore` (`*.exe` → `/dist/*.exe`) | 2 h | dev | — | `git status --short` vacío; `git log --oneline` con ≥1 commit; `git ls-files \| wc -l` ≥ 500 | |
+| S-02 ✅ | CI con los dos gates, `-p 1`, motores como servicios y cache de módulos | 4 h | infra | S-01 | Pipeline verde en el primer push y rojo si se rompe un test a propósito | |
+| S-03 ✅ | Mover `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` a `testdata/doubles/` | 1 h | dev | S-01 | `go list ./...` sin entradas `tmp_*`; suite completa verde | |
+| S-04 ✅ | Generar `dist/raw/` dentro de `build_matrix.sh` cuando exista `upx` | 1 h | dev | — | `bash scripts/cross/build_matrix.sh` deja `dist/raw` con 6 binarios y el smoke pasa sin preparación manual | |
 
 ## 2. P1 — Antes del piloto (una semana)
 
@@ -57,6 +57,17 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 | S-18 | Caducidad configurable del `leave_code` | 4 h | dev | S-12 | Código vencido → 403; test de reloj |
 | S-19 | Revisión legal del suelo de transparencia y de la política de baja | 2 d | legal | S-12 | Directorio y textos aprobados; página publicada |
 | S-20 | Comentario de porqué en `internal/deps/deps.go` y arreglo del preflight CORS | 2 h | dev | S-01 | `deps.go` explica el anclaje; el test del panel corre sin flag de Chromium |
+
+## 4.bis Estado de ejecución
+
+- **S-01, S-02 y S-04 cerrados** el 2026-11-12, con dos correcciones de alcance:
+  - La **protección de rama** no está disponible: repositorio privado sin GitHub Pro. Los gates corren y
+    se exigen por convención, pero no bloquean el merge. Queda como D-14.
+  - La propia CI destapó seis fallos de portabilidad Linux (bit `+x` en 41 scripts, ruta de redis de
+    Windows, permisos de directorio, `INVOCATION_ID` pisando `BOTNET_PERSIST`, esquema sin migrar y
+    binario de redis ausente): todos corregidos y cubiertos.
+- **S-03** (mover `tmp_*`) sigue pendiente: se commitearon como paquetes para no perder trabajo.
+- Dependabot reporta 4 avisos de `postcss`, ya forzado a la versión parcheada por override.
 
 ## 5. Orden recomendado y criterio de parada
 

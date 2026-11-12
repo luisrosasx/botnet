@@ -18,18 +18,19 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 
 | ID | Sev | Deuda | Evidencia | Impacto | Cierre |
 |---|---|---|---|---|---|
-| D-01 | S1 | Repo sin un solo commit: 525 entradas sin trackear sobre el commit inicial | `git status --short \| wc -l` → 525; `git rev-list --count HEAD` → 1 | Cualquier pérdida del árbol borra el proyecto; no hay revisión posible | Primer commit con el árbol completo y `.gitignore` revisado |
-| D-02 | S1 | Sin CI: nada corre solo, los gates son manuales | No existe `.github/`, `.gitlab-ci.yml` ni equivalente | La verificación se puede degradar sin que nadie lo note | Pipeline con los dos gates, `-p 1` y los motores como servicios |
+| D-01 | ✅ | ~~Repo sin commit~~ | 13 commits temáticos, árbol limpio | cerrado en S-01 | — |
+| D-02 | ✅ | ~~Sin CI~~ | `.github/workflows/{gates,tests,matrix}.yml`, probados con rojo provocado | cerrado en S-02 | — |
 | D-03 | S2 | `BuildLossPush` y `PushLossOnHeartbeat` no tienen llamante en producción | Definidos en `cmd/botnet-gw/loss_policy.go:43,46`; sin usos fuera del paquete | El gateway calcula pérdida y nunca se la empuja al nodo; el nodo no adapta | Llamarlos desde el bucle de heartbeat del gateway con test de extremo a extremo |
 | D-04 | S2 | `CommitAfter` es contrato sin temporizador: el commit solo ocurre por el exit 75 | `internal/agent/update.go:36-38,317`; commit solo en `cmd/botd/main.go` vía `--commit` | Un nodo que actualiza y no reinicia no fija versión; rollback depende de un camino único | Timer de latidos sanos que dispare el commit |
 | D-05 | S2 | `Watermark.HeartbeatAlive()` devuelve `true` constante | `internal/agent/watermark.go:131` | La histéresis de watermark tiene un assert parcialmente ciego | Derivar de la marca real de último latido |
 | D-06 | S2 | El bucle WS vivo del gateway no se mide en runtime; solo el contrato | Nota de verificación EP-08 (T-0803 AC2) | El drenaje puede comportarse distinto con sockets vivos | Test con conexión WS real y corte contabilizado |
 | D-07 | S3 | `pg_stat_statements` no precargado: el delta de consultas se mide con wrapper propio | `internal/db.Counted`; nota EP-08 | El conteo no es el del motor | Precargar la extensión en compose y medir con ella |
 | D-08 | S3 | `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` viven como paquetes sueltos en la raíz | `go list ./...` los lista; 4 entradas de primer nivel | Ruido en el árbol y en `go test ./...` | Moverlos a `testdata/doubles/` o `internal/*/testdata` |
-| D-09 | S3 | `dist/raw/` (binarios desempaquetados) se genera a mano, no en el pipeline | `scripts/qemu/smoke.sh` lo prefiere si existe | Sin él, el gate de emulación falla y alguien culpará a qemu | Generarlo en `build_matrix.sh` cuando `upx` esté presente |
-| D-10 | S3 | `.gitignore` ignora `*.exe` globalmente | `.gitignore:3` | Un `.exe` que hiciera falta commitear se pierde en silencio | Acotar el patrón a `/dist/` |
+| D-09 | ✅ | ~~dist/raw a mano~~ | `build_matrix.sh` lo genera; sonda en `scripts/qemu/probe` | cerrado en S-04 | — |
+| D-10 | ✅ | ~~`*.exe` global~~ | `.gitignore` acota a `/*.exe` y `/dist/` | cerrado en S-01 | — |
 | D-11 | S3 | Fragilidad de timing en tests de loopback Windows (`TestExpiredTokenNoStream`, `rdv`) | Nota EP-06 §deudas; fallos intermitentes documentados | Falsos rojos que erosionan la confianza en la suite | Reintento acotado o asserts sin carrera |
 | D-12 | S4 | `internal/deps/deps.go` ancla dependencias con imports en blanco | `internal/deps/deps.go` | Patrón poco común: parece código muerto | Comentario de porqué, o `tools.go` con tag `tools` |
+| D-14 | S2 | Repositorio privado sin GitHub Pro: la protección de rama no se puede activar | `gh api .../branches/master/protection` → 403 "Upgrade to GitHub Pro" | Los gates corren pero no impiden un merge en rojo | Hacer el repo público o pasar a Pro, y activar checks requeridos |
 
 ## 2. Riesgos de producto
 
