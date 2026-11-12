@@ -1,0 +1,4 @@
+-- EP-08 placeholder: el DDL contable y de inventario del blueprint
+-- (tenants, api_keys, nodes, node_secrets, sessions, usage, quotas,
+-- leaves) entra aqui cuando arranque la epica. El suelo solo reserva el
+-- numero de migracion: migrations/ avanza 0001 -> 000N, sin ORM.
