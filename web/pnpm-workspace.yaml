@@ -1,4 +1,3 @@
-# Aisla web/ del workspace padre (C:/Users/LAnge/orca/pnpm-workspace.yaml):
-# sin este fichero, `pnpm install` aqui sube al root del padre e ignora este
-# package.json. Es un proyecto unico, como hace el padre con mobile/.
 packages: []
+overrides:
+  postcss: ^8.5.32

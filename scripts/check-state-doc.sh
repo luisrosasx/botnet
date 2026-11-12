@@ -65,7 +65,11 @@ cmp_num "Paquetes Go" "$PKGS" ESTADO-ACTUAL.md
 cmp_num "Informes de verificación" "$VERIF" ESTADO-ACTUAL.md
 cmp_num "Runbooks" "$RUNBOOKS" ESTADO-ACTUAL.md
 cmp_num "Migraciones" "$MIGS" ESTADO-ACTUAL.md
-cmp_num "Commits" "$COMMITS" ESTADO-ACTUAL.md
+# El commit que actualiza este documento cambia el recuento: tolerancia ±2.
+doc_cm=$(grep -F "| Commits |" "$S/ESTADO-ACTUAL.md" | head -1 | awk -F'|' '{for(i=NF;i>0;i--){v=$i; gsub(/ /,"",v); if(v!=""){print v; exit}}}')
+if [ -n "$doc_cm" ] && [ $((COMMITS - doc_cm)) -le 2 ] && [ $((doc_cm - COMMITS)) -le 2 ]; then
+  ok "commits doc=$doc_cm real=$COMMITS (tolerancia 2)"
+else bad "commits doc=$doc_cm real=$COMMITS"; fi
 TRACKED=$(git ls-files | wc -l | tr -d ' ')
 # Los versionados crecen con cada commit: tolerancia acotada en vez de exactitud.
 doc_tr=$(grep -F "| Ficheros versionados |" "$S/ESTADO-ACTUAL.md" | head -1 | awk -F'|' '{for(i=NF;i>0;i--){v=$i; gsub(/ /,"",v); if(v!=""){print v; exit}}}')
