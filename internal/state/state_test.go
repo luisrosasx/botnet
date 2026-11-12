@@ -224,5 +224,3 @@ func TestFlushTimeJitterNoBroteFijo(t *testing.T) {
 		t.Fatalf("jitter no determinista: %v vs %v", a, b)
 	}
 }
-
-func TestSelftestFalla(t *testing.T) { t.Fatal("selftest: rojo provocado a proposito") }
