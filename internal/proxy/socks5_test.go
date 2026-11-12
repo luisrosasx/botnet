@@ -74,7 +74,9 @@ func socksConnect(t *testing.T, addr, uname string, host string, port int) (net.
 	}
 	ar := make([]byte, 2)
 	if _, err := io.ReadFull(conn, ar); err != nil {
-		return conn, nil, err
+		// Se devuelve el buffer aunque el read falle: los llamantes
+		// indexan ar[1] y un nil los tumbaba en carreras de loopback.
+		return conn, ar, err
 	}
 	if ar[1] == s5AuthReject {
 		return conn, ar, errors.New("proxy: auth rechazada")

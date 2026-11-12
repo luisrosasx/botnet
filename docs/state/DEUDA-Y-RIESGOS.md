@@ -28,7 +28,8 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | D-08 | S3 | `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` viven como paquetes sueltos en la raíz | `go list ./...` los lista; 4 entradas de primer nivel | Ruido en el árbol y en `go test ./...` | Moverlos a `testdata/doubles/` o `internal/*/testdata` |
 | D-09 | ✅ | ~~dist/raw a mano~~ | `build_matrix.sh` lo genera; sonda en `scripts/qemu/probe` | cerrado en S-04 | — |
 | D-10 | ✅ | ~~`*.exe` global~~ | `.gitignore` acota a `/*.exe` y `/dist/` | cerrado en S-01 | — |
-| D-11 | S3 | Fragilidad de timing en tests de loopback Windows (`TestExpiredTokenNoStream`, `rdv`) | Nota EP-06 §deudas; fallos intermitentes documentados | Falsos rojos que erosionan la confianza en la suite | Reintento acotado o asserts sin carrera |
+| D-15 | S3 | El reintento de transporte solo cubre la lectura del gate de enroll (`queryRowRetry`); el resto de lecturas siguen devolviendo 500 ante un reset | `cmd/botnet-api/repo/retry.go` | Un reset bajo carga sigue dando 500 en otras rutas | Extender `queryRowRetry` a las lecturas de sesión y panel |
+| D-11 | ✅ | ~~Fragilidad de timing en tests de loopback~~: guarda del buffer y reintento de dial en `rdv` | 10 ejecuciones seguidas verdes | cerrado en S-09 | — |
 | D-12 | S4 | `internal/deps/deps.go` ancla dependencias con imports en blanco | `internal/deps/deps.go` | Patrón poco común: parece código muerto | Comentario de porqué, o `tools.go` con tag `tools` |
 | D-14 | S2 | Repositorio privado sin GitHub Pro: la protección de rama no se puede activar | `gh api .../branches/master/protection` → 403 "Upgrade to GitHub Pro" | Los gates corren pero no impiden un merge en rojo | Hacer el repo público o pasar a Pro, y activar checks requeridos |
 

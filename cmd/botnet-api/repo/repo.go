@@ -75,8 +75,8 @@ func (d *Data) NodeByTicketHash(ctx context.Context, hash string) (string, error
 // NodeByTokenHash es el gate A3-01 del enroll: token conocido = nodo vivo
 // en la flota. Devuelve ("", nil) si no existe.
 func (d *Data) NodeByTokenHash(ctx context.Context, hash string) (string, error) {
-	var id string
-	err := d.Q.QueryRowContext(ctx, `SELECT node_id::text FROM nodes WHERE device_token_hash = $1`, hash).Scan(&id)
+	// Lectura de gate: un reset de conexión no puede salir como 500.
+	id, err := queryRowRetry(ctx, d.Q, `SELECT node_id::text FROM nodes WHERE device_token_hash = $1`, hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
