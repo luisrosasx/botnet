@@ -1,0 +1,19 @@
+# Normaliza a LF los ficheros de texto: el repo se edita en Windows y se
+# construye en Linux (CI y banco QEMU). Sin esto, los .sh viajan con CRLF y
+# `bash` remoto rechaza `set -o pipefail` con "invalid option name".
+* text=auto
+*.go    text eol=lf
+*.sh    text eol=lf
+*.sql   text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.csv   text eol=lf
+*.md    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+Makefile text eol=lf
+*.png  binary
+*.jpg  binary
+*.ico  binary

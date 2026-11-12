@@ -1,0 +1,11 @@
+# binarios de la matriz de build
+/dist/
+/*.exe
+# estado del harness (cambia en cada sesión)
+/.ultracode/
+# artefactos de pánico/local
+*.log
+# ...salvo la evidencia de verificación, que es entregable
+!docs/verification/evidence/*.log
+# rutas malformadas que deja algún test en Windows
+UsersLAngeAppDataLocalTemp*
