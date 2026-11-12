@@ -411,7 +411,7 @@ func agentWork(log *slog.Logger, cfg config.Config, nodeDir, ver, socks5Addr, me
 			log.Info("botd start", "mode", "agent", "slug", id.Slug)
 			_ = machine.Transition(state.Agent)
 		}
-		return runAgent(ctx, log, cfg, id, machine, ver, socks5Addr, metricsAddr)
+		return runAgent(ctx, log, cfg, id, machine, ver, socks5Addr, metricsAddr, nodeDir)
 	}
 }
 
@@ -455,7 +455,7 @@ func runEnroll(ctx context.Context, log *slog.Logger, cfg config.Config, nodeDir
 // entitlements en caliente y supervisor in-process. El proxy SOCKS5
 // embebido (EP-06) arranca aqui en loopback; sin el tag socks5 el binario
 // informa socks5=off y el plano de control sigue vivo.
-func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent.NodeIdentity, machine *state.Machine, ver, socks5Addr, metricsAddr string) error {
+func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent.NodeIdentity, machine *state.Machine, ver, socks5Addr, metricsAddr, nodeDir string) error {
 	nodeID, err := agent.ParseUUID(id.NodeID)
 	if err != nil {
 		log.Error("node_id en node.json", "err", err)
@@ -481,6 +481,12 @@ func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent
 		Manager:   mgr,
 		Sup:       agent.NewSupervisor(log),
 		IntervalS: cfg.IntervalS,
+		// T-1404 AC2: el update descargado se fija tras latidos sanos con
+		// trafico real (H2). Sin esta deps el commit moria en los tests.
+		Commit:  agent.NewCommitTimer(0, nil),
+		Updater: agent.NewUpdater(nodeDir, string(rune(class))),
+		Version: ver,
+		Streams: func() int { return adm.TenantCount() },
 	}
 	return agent.RunAgentLoop(ctx, deps)
 }

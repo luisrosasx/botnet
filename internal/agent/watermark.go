@@ -62,18 +62,32 @@ type Watermark struct {
 	pauseStarted time.Time
 	pressureEnds time.Time // presion aun vigente si es el cero
 	resumeAt     time.Time
+	lastBeat     time.Time // ultima marca de latido (HeartbeatAlive)
+	beatWindow   time.Duration
 }
 
 // NewWatermark fija la histeria canonica sobre el presupuesto del agente.
 func NewWatermark(limit uint64) *Watermark {
 	return &Watermark{
-		Limit:    limit,
-		High:     WatermarkHighFraction,
-		PauseMin: WatermarkPauseMin,
-		Cooldown: WatermarkCooldown,
-		now:      time.Now,
-		phase:    WmRunning,
+		Limit:      limit,
+		High:       WatermarkHighFraction,
+		PauseMin:   WatermarkPauseMin,
+		Cooldown:   WatermarkCooldown,
+		now:        time.Now,
+		phase:      WmRunning,
+		beatWindow: HeartbeatAliveWindow,
 	}
+}
+
+// HeartbeatAliveWindow es el margen del que se dispone para ver un latido
+// fresco. Por encima de 2,5 intervalos de la cadencia unica (30 s) el
+// control se considera muerto aunque la fase siga en running.
+const HeartbeatAliveWindow = 75 * time.Second
+
+// MarkHeartbeat sella la marca de control vivo. La llama el bucle que
+// recibe o emite latidos, no el watermark por su cuenta.
+func (w *Watermark) MarkHeartbeat() {
+	w.lastBeat = w.now()
 }
 
 // pressured dice si la muestra cae en la franja de presion.
@@ -126,9 +140,15 @@ func (w *Watermark) resumeDeadline(pressureEnded time.Time) time.Time {
 // Admit: el plano de datos entra solo en fase running.
 func (w *Watermark) Admit() bool { return w.phase == WmRunning }
 
-// HeartbeatAlive: el heartbeat sobrevive a la pausa (modo solo-control);
-// si esto alguna vez responde false, el watermark mato el control.
-func (w *Watermark) HeartbeatAlive() bool { return true }
+// HeartbeatAlive: el heartbeat sobrevive a la pausa (modo solo-control),
+// pero eso no significa responder true siempre: sin latido fresco dentro
+// de la ventana, el control esta muerto y asi se reporta (H3).
+func (w *Watermark) HeartbeatAlive() bool {
+	if w.lastBeat.IsZero() {
+		return false
+	}
+	return w.now().Sub(w.lastBeat) <= w.beatWindow
+}
 
 // Phase y PauseStarted son para logs y asserts del test.
 func (w *Watermark) Phase() WatermarkPhase     { return w.phase }

@@ -99,11 +99,11 @@ total=$(grep -F '| **Total** |' "$S/DEUDA-Y-RIESGOS.md" | awk -F'|' '{v=$3; gsub
 [ "$total" = "$sum" ] && ok "total de pendientes de campo = $sum" || bad "total de pendientes: doc=$total real=$sum"
 
 # --- plan: columnas y campos ---
-steps=$(grep -cE '^\| S-[0-9]{2} \|' "$S/PROXIMOS-PASOS.md")
+steps=$(grep -cE '^\| S-[0-9]{2}( ✅)? \|' "$S/PROXIMOS-PASOS.md")
 [ "$steps" -ge 15 ] && ok "plan con $steps pasos" || bad "plan con $steps pasos (mínimo 15)"
 badrows=$(awk -F'|' '
   /^## / { if ($0 ~ /P[0-3]/) { match($0, /P[0-3]/); prio=substr($0, RSTART, 2) } else prio="" }
-  /^\| S-[0-9]{2} \|/ {
+  /^\| S-[0-9]{2}( ✅)? \|/ {
     if (prio == "") { print "prioridad:" $2; next }
     c=$4; r=$5; cr=$7; gsub(/ /,"",c); gsub(/ /,"",r); gsub(/ /,"",cr);
     if (c == "") print "coste:" $2;
