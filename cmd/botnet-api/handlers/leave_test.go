@@ -151,3 +151,58 @@ func TestBarridoMilIDsSin503(t *testing.T) {
 		resp.Body.Close()
 	}
 }
+
+// S-18: el código caduca. Con TTL corto y el alta envejecida, el código
+// correcto responde 403 (caducado) y no 200.
+func TestLeaveCodeCaduca(t *testing.T) {
+	db := testenv.PG(t)
+	id := testenv.SeedNode(t, db, "ES", "Madrid", 12345)
+	if _, err := db.ExecContext(context.Background(),
+		`UPDATE nodes SET leave_code = 'caduca01'::char(8),
+		 enrolled_at = now() - interval '30 days' WHERE node_id = $1::uuid`, id); err != nil {
+		t.Fatal(err)
+	}
+	rp := repo.New(db)
+	app := NewApp(&Deps{Repo: rp, LeaveCodeTTL: 7 * 24 * time.Hour})
+	resp := postLeave(t, app, id, "?code=caduca01")
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("código caducado = %d, want 403", resp.StatusCode)
+	}
+
+	// Con TTL desactivado (0) el mismo código vuelve a valer.
+	app2 := NewApp(&Deps{Repo: rp})
+	resp2 := postLeave(t, app2, id, "?code=caduca01")
+	defer resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		t.Fatalf("sin TTL = %d, want 200", resp2.StatusCode)
+	}
+}
+
+// S-20: con PanelOrigins el preflight del navegador pasa; sin él, no hay
+// cabecera CORS (comportamiento previo intacto).
+func TestCORSConPanelOrigin(t *testing.T) {
+	app := NewApp(&Deps{PanelOrigins: "http://127.0.0.1:3100"})
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("Origin", "http://127.0.0.1:3100")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "http://127.0.0.1:3100" {
+		t.Fatalf("ACAO = %q, want el origen del panel", got)
+	}
+
+	app2 := NewApp(&Deps{})
+	req2 := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req2.Header.Set("Origin", "http://127.0.0.1:3100")
+	resp2, err := app2.Test(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp2.Body.Close()
+	if resp2.Header.Get("Access-Control-Allow-Origin") != "" {
+		t.Fatal("sin PanelOrigins no debe haber CORS")
+	}
+}

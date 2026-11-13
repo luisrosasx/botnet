@@ -178,6 +178,8 @@ func runServe() error {
 		// binario desplegado nunca devuelve 429 — el middleware es
 		// pasamanos con Limiter nil.
 		LeaveLimiter:       newRateWindow(rdb),
+		LeaveCodeTTL:       leaveCodeTTLFromEnv(),
+		PanelOrigins:       panelOriginsFromEnv(),
 		TransparentLimiter: newRateWindow(rdb),
 		// Plano Stripe (T-1104): el secreto HMAC del webhook firmado
 		// llega del entorno; vacio = webhook 503 «plano apagado».
@@ -211,6 +213,26 @@ func newRateWindow(rdb *redis.Client) *middleware.RedisWindow {
 		Limit:  middleware.LeaveRateLimitPerWindow,
 		Window: middleware.LeaveWindow,
 	}
+}
+
+// panelOriginsFromEnv: origenes permitidos para el panel (S-20). Por
+// defecto el panel de desarrollo; vacio explicito desactiva CORS.
+func panelOriginsFromEnv() string {
+	if v, ok := os.LookupEnv("PANEL_ORIGIN"); ok {
+		return v
+	}
+	return "http://127.0.0.1:3100,http://localhost:3100"
+}
+
+// leaveCodeTTLFromEnv: caducidad del codigo de baja (S-18). Sin variable,
+// 90 dias; 0 lo desactiva.
+func leaveCodeTTLFromEnv() time.Duration {
+	if v := os.Getenv("BOTNET_LEAVE_CODE_TTL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return 90 * 24 * time.Hour
 }
 
 // stripeSecretFromEnv: STRIPE_SECRET es la puerta canonica; se acepta

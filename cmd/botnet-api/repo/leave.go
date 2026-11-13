@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // LeaveCode: el codigo char(8) del nodo (RTRIM: char rellena a
@@ -14,16 +15,27 @@ import (
 // no le emite codigo — sin codigo no hay puerta http (todo codigo
 // casa a 404).
 func (d *Data) LeaveCode(ctx context.Context, nodeID string) (string, error) {
-	var code string
+	code, _, err := d.LeaveCodeIssued(ctx, nodeID)
+	return code, err
+}
+
+// LeaveCodeIssued devuelve además cuándo se emitió el código (el alta):
+// el handler lo compara con la caducidad configurable (S-18).
+func (d *Data) LeaveCodeIssued(ctx context.Context, nodeID string) (string, time.Time, error) {
+	var (
+		code   string
+		issued time.Time
+	)
 	err := d.Q.QueryRowContext(ctx, `
-		SELECT COALESCE(RTRIM(leave_code::text), '') FROM nodes WHERE node_id = $1::uuid`, nodeID).Scan(&code)
+		SELECT COALESCE(RTRIM(leave_code::text), ''), enrolled_at
+		FROM nodes WHERE node_id = $1::uuid`, nodeID).Scan(&code, &issued)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrNotFound
+		return "", time.Time{}, ErrNotFound
 	}
 	if err != nil {
-		return "", fmt.Errorf("repo: leave code: %w", err)
+		return "", time.Time{}, fmt.Errorf("repo: leave code: %w", err)
 	}
-	return code, nil
+	return code, issued, nil
 }
 
 // MarkOptout estampa la fecha de baja en la fila del nodo (EP-11

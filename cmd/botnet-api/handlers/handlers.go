@@ -6,8 +6,10 @@ package handlers
 import (
 	"bytes"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/botnet/botnet/cmd/botnet-api/middleware"
@@ -40,6 +42,16 @@ type Deps struct {
 	// esquema firma/verifica; la simulacion local lo usa igual).
 	StripeSecret string
 
+	// PanelOrigins: orígenes del panel para CORS (S-20). Vacío = sin CORS.
+	// Antes el navegador exigía --disable-web-security para el cruce de
+	// origen del panel; con esto el preflight pasa solo.
+	PanelOrigins string
+
+	// LeaveCodeTTL: caducidad del codigo de baja (0 = no caduca). nowFn
+	// permite reloj falso en los tests (S-18).
+	LeaveCodeTTL time.Duration
+	nowFn        func() time.Time
+
 	// LeaveLimiter: ventana rate:leave:{ip} de la puerta legal
 	// (EP-07 T-0706, A3-13). nil = sin limite (dev/test).
 	LeaveLimiter middleware.Limiter
@@ -64,6 +76,14 @@ func NewApp(d *Deps) *fiber.App {
 		AppName:               "botnet-api",
 		DisableStartupMessage: true,
 	})
+	if d.PanelOrigins != "" {
+		app.Use(cors.New(cors.Config{
+			AllowOrigins: d.PanelOrigins,
+			AllowMethods: "GET,POST,OPTIONS",
+			AllowHeaders: "Authorization,Content-Type,X-Device-Token,X-Node-Id",
+			MaxAge:       600,
+		}))
+	}
 	app.Use(accessLog(d)) // una linea por peticion si Deps.AccessLog != nil
 	app.Get("/healthz", healthz(d))
 	app.Get("/t/:slug", middleware.TransparencyRateLimit(d.TransparentLimiter), transparency(d)) // EP-11 T-1101

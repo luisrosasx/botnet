@@ -26,12 +26,12 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | D-16 | S2 | El cliente Stripe solo tiene doble HTTP en test; sin cuenta de test no se ha ejercitado contra el proveedor | `internal/accounting/stripe_client.go` | La conciliación real puede divergir | Ejecutar `StripeGBFromEnv()` con claves `sk_test_` y pegar una conciliación |
 | D-06 | S2 | El bucle WS vivo del gateway no se mide en runtime; solo el contrato | Nota de verificación EP-08 (T-0803 AC2) | El drenaje puede comportarse distinto con sockets vivos | Test con conexión WS real y corte contabilizado |
 | D-07 | S3 | `pg_stat_statements` no precargado: el delta de consultas se mide con wrapper propio | `internal/db.Counted`; nota EP-08 | El conteo no es el del motor | Precargar la extensión en compose y medir con ella |
-| D-08 | S3 | `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` viven como paquetes sueltos en la raíz | `go list ./...` los lista; 4 entradas de primer nivel | Ruido en el árbol y en `go test ./...` | Moverlos a `testdata/doubles/` o `internal/*/testdata` |
+| D-08 | ✅ | ~~`tmp_*` en la raíz~~: movidos a `testdata/doubles/` | fuera de `go list ./...` | cerrado en S-03 | — |
 | D-09 | ✅ | ~~dist/raw a mano~~ | `build_matrix.sh` lo genera; sonda en `scripts/qemu/probe` | cerrado en S-04 | — |
 | D-10 | ✅ | ~~`*.exe` global~~ | `.gitignore` acota a `/*.exe` y `/dist/` | cerrado en S-01 | — |
 | D-15 | S3 | El reintento de transporte solo cubre la lectura del gate de enroll (`queryRowRetry`); el resto de lecturas siguen devolviendo 500 ante un reset | `cmd/botnet-api/repo/retry.go` | Un reset bajo carga sigue dando 500 en otras rutas | Extender `queryRowRetry` a las lecturas de sesión y panel |
 | D-11 | ✅ | ~~Fragilidad de timing en tests de loopback~~: guarda del buffer y reintento de dial en `rdv` | 10 ejecuciones seguidas verdes | cerrado en S-09 | — |
-| D-12 | S4 | `internal/deps/deps.go` ancla dependencias con imports en blanco | `internal/deps/deps.go` | Patrón poco común: parece código muerto | Comentario de porqué, o `tools.go` con tag `tools` |
+| D-12 | ✅ | ~~`deps.go` sin explicación~~: comentario del porqué | — | cerrado en S-20 | — |
 | D-14 | S2 | Repositorio privado sin GitHub Pro: la protección de rama no se puede activar | `gh api .../branches/master/protection` → 403 "Upgrade to GitHub Pro" | Los gates corren pero no impiden un merge en rojo | Hacer el repo público o pasar a Pro, y activar checks requeridos |
 
 ## 2. Riesgos de producto
@@ -44,7 +44,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | R-04 | S2 | El dispositivo no es nuestro: puede desaparecer, reiniciarse o saturarse | BRIEF-BASE §restricciones | Watchdog, guard de cron y `--stage`; el tope de 2-5 Mbps evita que el dueño lo note |
 | R-05 | ✅ | ~~Stripe solo simulado~~: cliente real con `STRIPE_API_BASE`/`STRIPE_SECRET` | probado con doble HTTP; falta la cuenta | cerrar D-16 con claves de test |
 | R-06 | S2 | Abuso del cliente: sin tope por inquilino en el nodo, un tenant satura el dispositivo | Tope de 8 streams y 8 tenants aplicados en gateway | Rate-limit por api key y alerta por nodo caliente |
-| R-07 | S3 | Re-clutaje de un nodo dado de baja si el `leave_code` se filtra | `handlers/leave.go`, `leaves` con 12 meses | Código de 8 caracteres con rate-limit; caducidad configurable |
+| R-07 | ✅ | ~~`leave_code` sin caducidad~~: TTL configurable (`BOTNET_LEAVE_CODE_TTL`, 90 d por defecto) | cerrado en S-18 | — |
 
 ## 3. Limitaciones aceptadas
 

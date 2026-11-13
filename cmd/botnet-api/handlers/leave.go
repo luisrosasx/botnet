@@ -12,6 +12,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -30,12 +31,18 @@ func leave(d *Deps) fiber.Handler {
 		if !leaveCodeRE.MatchString(code) {
 			return jsonError(c, http.StatusForbidden, "codigo de baja de 8 caracteres requerido")
 		}
-		stored, err := d.Repo.LeaveCode(c.Context(), nodeID)
+		stored, issued, err := d.Repo.LeaveCodeIssued(c.Context(), nodeID)
 		if errors.Is(err, repo.ErrNotFound) {
 			return jsonError(c, http.StatusNotFound, "nodo desconocido")
 		}
 		if err != nil {
 			return jsonError(c, http.StatusInternalServerError, err.Error())
+		}
+		// S-18: caducidad configurable. Un codigo viejo ya no vale aunque
+		// siga en la fila; se responde 403 y no 404 para no confundirlo
+		// con un codigo que no coincide.
+		if ttl := d.LeaveCodeTTL; ttl > 0 && !issued.IsZero() && d.now().Sub(issued) > ttl {
+			return jsonError(c, http.StatusForbidden, "codigo de baja caducado")
 		}
 		// Comparacion en tiempo constante: la ventana de rate-limit
 		// es la puerta dura; el char(8) no se filtra ni por timing.
@@ -62,4 +69,12 @@ func leave(d *Deps) fiber.Handler {
 		}
 		return c.Status(http.StatusOK).JSON(fiber.Map{"node_id": nodeID, "left": true})
 	}
+}
+
+// now: reloj de la caducidad del código de baja (falso en tests).
+func (d *Deps) now() time.Time {
+	if d.nowFn != nil {
+		return d.nowFn()
+	}
+	return time.Now()
 }
