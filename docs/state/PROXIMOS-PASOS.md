@@ -54,9 +54,9 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 | # | Paso | Coste | Rol | Depende | Criterio de cierre |
 |---|---|---|---|---|---|
 | S-17 | Rate-limit por api key además del tope por nodo | 1 d | dev | S-16 | Abuso simulado de un tenant no degrada a los demás |
-| S-18 | Caducidad configurable del `leave_code` | 4 h | dev | S-12 | Código vencido → 403; test de reloj |
+| S-18 ✅ | Caducidad configurable del `leave_code` | 4 h | dev | S-12 | Código vencido → 403; test de reloj |
 | S-19 | Revisión legal del suelo de transparencia y de la política de baja | 2 d | legal | S-12 | Directorio y textos aprobados; página publicada |
-| S-20 | Comentario de porqué en `internal/deps/deps.go` y arreglo del preflight CORS | 2 h | dev | S-01 | `deps.go` explica el anclaje; el test del panel corre sin flag de Chromium |
+| S-20 ✅ | Comentario de porqué en `internal/deps/deps.go` y arreglo del preflight CORS | 2 h | dev | S-01 | `deps.go` explica el anclaje; el test del panel corre sin flag de Chromium |
 
 ## 4.bis Estado de ejecución
 
@@ -69,7 +69,7 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 - **S-05, S-06 y S-07 cerrados** el mismo día: política en `internal/loss`, empuje con consumidor e2e, temporizador de commit y `HeartbeatAlive` con ventana.
 - **S-08 y S-09 cerrados**: drenaje aislado por ejecución y flakes de loopback eliminados con reintento acotado.
 - **S-10, S-11 y S-15 cerrados**: cliente Stripe real por entorno, headscale v0.29 fijado y `pg_stat_statements` precargada. La verificación con cuenta de test queda como D-16.
-- **S-03** (mover `tmp_*`) sigue pendiente: se commitearon como paquetes para no perder trabajo.
+- **S-03, S-18 y S-20 cerrados**: dobles fuera de `go list`, caducidad del código de baja y CORS del panel sin flag.: se commitearon como paquetes para no perder trabajo.
 - Dependabot reporta 4 avisos de `postcss`, ya forzado a la versión parcheada por override.
 
 ## 5. Orden recomendado y criterio de parada
