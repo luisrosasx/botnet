@@ -2,9 +2,16 @@
 # La malla es plano de operaciones best-effort: solo nodos con tun,
 # direcciones CGNAT 100.64/10, y ni un byte de plano de datos la cruza
 # (la regla de encapsulado vive en docs/runbooks/mesh.md).
-# Formato: YAML nativo de headscale v0.23-0.26 (claves planas).
+# Formato: YAML de headscale v0.29 (v0.23-0.26 ya no vale: la versión está
+# fijada en VERSION y el runbook de mesh lista lo que se movió).
 
 server_url: https://mesh.botnet.internal:8000
+
+# v0.29 exige la clave de ruido del protocolo v2. El fichero lo crea el
+# propio headscale al primer arranque; debe vivir fuera del repo en el
+# bastion (0600) y sobrevivir a los despliegues.
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
 
 # El API/metrics del propio headscale NUNCA escucha en 0.0.0.0 hacia la
 # interfaz externa: operaciones entra por WG, no por un puerto publico
@@ -17,9 +24,11 @@ metrics_listen_addr: 127.0.0.1:9090
 # nodo es estable y el runbook de SSH la usa como destino.
 prefixes:
   v4: 100.64.0.0/10
-  v6: native
+  v6: fd7a:115c:a1e0::/48
 
-randomize_client_port: false
+# v0.29 movió esta clave al fichero de política como randomizeClientPort.
+# Se deja aquí comentada como referencia para no reintroducirla.
+# randomize_client_port: false
 
 # Direccionamiento interno del bastion: los nodos se ven por nombre
 # magico sin montar DNS propio.
@@ -36,10 +45,11 @@ policy_path: ./aclpolicy.hujson
 logtail:
   enabled: false
 
+# v0.29: type/sqlite.path sustituyen a driver/host/name.
 database:
-  driver: sqlite3
-  host: ""
-  name: /var/lib/headscale/db.sqlite3
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
 
 derp:
   server:

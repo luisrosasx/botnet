@@ -17,6 +17,14 @@ volumes:
 services:
   postgres:
     image: postgres:16
+    # S-15: precargada para poder medir con el motor en vez de con el
+    # contador del wrapper. Sin esto, la extensión no ve ninguna query.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
     environment:
       POSTGRES_DB: botnet
       POSTGRES_USER: botnet

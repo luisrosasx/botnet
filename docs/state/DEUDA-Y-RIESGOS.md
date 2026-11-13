@@ -23,6 +23,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | D-03 | ✅ | ~~Empuje de pérdida sin llamante~~: `internal/loss`, `LossPusher` y `LossConsumer` con e2e | Definidos en `cmd/botnet-gw/loss_policy.go:43,46`; sin usos fuera del paquete | El gateway calcula pérdida y nunca se la empuja al nodo; el nodo no adapta | Llamarlos desde el bucle de heartbeat del gateway con test de extremo a extremo |
 | D-04 | ✅ | ~~`CommitAfter` sin temporizador~~: `CommitTimer` cableado en el latido | `internal/agent/update.go:36-38,317`; commit solo en `cmd/botd/main.go` vía `--commit` | Un nodo que actualiza y no reinicia no fija versión; rollback depende de un camino único | Timer de latidos sanos que dispare el commit |
 | D-05 | ✅ | ~~`HeartbeatAlive()` constante~~: ventana de 75 s sobre la marca real | `internal/agent/watermark.go:131` | La histéresis de watermark tiene un assert parcialmente ciego | Derivar de la marca real de último latido |
+| D-16 | S2 | El cliente Stripe solo tiene doble HTTP en test; sin cuenta de test no se ha ejercitado contra el proveedor | `internal/accounting/stripe_client.go` | La conciliación real puede divergir | Ejecutar `StripeGBFromEnv()` con claves `sk_test_` y pegar una conciliación |
 | D-06 | S2 | El bucle WS vivo del gateway no se mide en runtime; solo el contrato | Nota de verificación EP-08 (T-0803 AC2) | El drenaje puede comportarse distinto con sockets vivos | Test con conexión WS real y corte contabilizado |
 | D-07 | S3 | `pg_stat_statements` no precargado: el delta de consultas se mide con wrapper propio | `internal/db.Counted`; nota EP-08 | El conteo no es el del motor | Precargar la extensión en compose y medir con ella |
 | D-08 | S3 | `tmp_ep05adv`, `tmp_ep06adv`, `tmp_gwseed`, `tmp_ticket` viven como paquetes sueltos en la raíz | `go list ./...` los lista; 4 entradas de primer nivel | Ruido en el árbol y en `go test ./...` | Moverlos a `testdata/doubles/` o `internal/*/testdata` |
@@ -41,7 +42,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | R-02 | S1 | CA de flota como punto único: su compromiso permite emitir certificados a cualquiera | `deploy/signing/ca_policy.md` | Emisión offline, CRL con revocación < 60 s y rotación a 90 días; falta el ejercicio de revocación masiva |
 | R-03 | S2 | Dueño same-uid: puede leer claves en flash y matar procesos | Modelo de amenaza, nota EP-05 | Rotación de secreto y cert a 90 días; el churn se vigila con `reprobe_guard` |
 | R-04 | S2 | El dispositivo no es nuestro: puede desaparecer, reiniciarse o saturarse | BRIEF-BASE §restricciones | Watchdog, guard de cron y `--stage`; el tope de 2-5 Mbps evita que el dueño lo note |
-| R-05 | S2 | Stripe solo simulado con HMAC local; el cobro real puede divergir | `internal/accounting` (FakeStripe) | Cambiar URL base y secreto, y correr una conciliación con la cuenta real |
+| R-05 | ✅ | ~~Stripe solo simulado~~: cliente real con `STRIPE_API_BASE`/`STRIPE_SECRET` | probado con doble HTTP; falta la cuenta | cerrar D-16 con claves de test |
 | R-06 | S2 | Abuso del cliente: sin tope por inquilino en el nodo, un tenant satura el dispositivo | Tope de 8 streams y 8 tenants aplicados en gateway | Rate-limit por api key y alerta por nodo caliente |
 | R-07 | S3 | Re-clutaje de un nodo dado de baja si el `leave_code` se filtra | `handlers/leave.go`, `leaves` con 12 meses | Código de 8 caracteres con rate-limit; caducidad configurable |
 
@@ -53,7 +54,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | L-02 | S3 | Bajo emulación el RSS medido incluye el emulador; se descuenta una línea base | No hay hardware MIPS/ARM en el host |
 | L-03 | S3 | El Postgres portable suelta dial-timeouts: el gate serializa paquetes con `-p 1` | Se mitiga la contención, no el motor |
 | L-04 | S3 | Preflight CORS del panel se resuelve con flag de Chromium en el test | Artificio del entorno de desarrollo, no del producto |
-| L-05 | S3 | Config de headscale en formato antiguo; v0.29 lo rechaza sin adaptar | El bastión fijará versión; el runbook lo advierte |
+| L-05 | ✅ | ~~Config de headscale antiguo~~: migrado a v0.29 y versión fijada en VERSION | `headscale serve` arranca |
 | L-06 | S4 | `go.mod` declara `go 1.27` y el banco trae 1.26.8: exige `GOTOOLCHAIN=auto` | Se resuelve fijando toolchain en el banco o bajando el requisito |
 
 ## 4. Criterios pendientes de medición de campo (49)
