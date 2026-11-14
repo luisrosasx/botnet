@@ -16,7 +16,7 @@ Cifras recomputadas el 2026-11-14:
 
 | Dato | Valor | Comando |
 |---|---|---|
-| Commits | 30 | `git rev-list --count HEAD` |
+| Commits | 31 | `git rev-list --count HEAD` |
 | Ficheros versionados | 547 | `git ls-files \| wc -l` |
 | Ficheros Go | 280 | `git ls-files '*.go' \| wc -l` |
 | Líneas Go | 39.901 | `git ls-files '*.go' \| xargs wc -l` |
