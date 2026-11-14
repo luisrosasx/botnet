@@ -12,7 +12,13 @@ set -uo pipefail
 DRY=0
 [ "${1:-}" = "--dry-run" ] && DRY=1
 
-IMAGES='botd\.exe|botnet-api\.exe|botnet-gw\.exe|botnet-rdv\.exe|botnet-discover\.exe|botnet-strike\.exe|botnet-build\.exe|botctl\.exe|stub_api\.exe|apistub\.exe|probe-.*\.exe|qemu-(mips|mipsel|arm|aarch64|x86_64)\.exe|redis-server\.exe|nats-server\.exe'
+# Los motores (redis/nats) quedan FUERA por defecto: la suite los arranca y
+# los mata ella misma, y barrerlos a mitad de una tanda deja tests rojos por
+# "connection refused" que parecen del codigo. Con --engines se incluyen.
+IMAGES='botd\.exe|botnet-api\.exe|botnet-gw\.exe|botnet-rdv\.exe|botnet-discover\.exe|botnet-strike\.exe|botnet-build\.exe|botctl\.exe|stub_api\.exe|apistub\.exe|probe-.*\.exe|qemu-(mips|mipsel|arm|aarch64|x86_64)\.exe'
+for arg in "$@"; do
+  [ "$arg" = "--engines" ] && IMAGES="$IMAGES|redis-server\.exe|nats-server\.exe"
+done
 
 mapfile -t pids < <(tasklist //FO CSV 2>/dev/null | awk -F'","' 'NR>1{print $1"\t"$2}' | tr -d '"' \
   | grep -E "$IMAGES" | awk '{print $2}' | sort -un)

@@ -58,11 +58,27 @@ func TestApplyOnCleanDatabase(t *testing.T) {
 		t.Fatalf("open scratch: %v", err)
 	}
 	defer clean.Close()
-	if err := migrations.Apply(clean); err != nil {
+	// Apply tambien se reintenta: el reset del motor portable llega al leer
+	// el fichero de migracion a mitad y aborta la transaccion. Es el motor,
+	// no el DDL (visto como `wsarecv: forcibly closed` en 0001_init.up.sql).
+	apply := func() error {
+		var e error
+		for i := 0; i < 5; i++ {
+			if e = migrations.Apply(clean); e == nil {
+				return nil
+			}
+			if !esResetDeTransporte(e) {
+				return e
+			}
+			time.Sleep(time.Duration(i+1) * 400 * time.Millisecond)
+		}
+		return e
+	}
+	if err := apply(); err != nil {
 		t.Fatalf("Apply en base limpia: %v", err)
 	}
 	// Idempotencia por version: un segundo Apply no vuelve a aplicar.
-	if err := migrations.Apply(clean); err != nil {
+	if err := apply(); err != nil {
 		t.Fatalf("Apply idempotente: %v", err)
 	}
 
@@ -161,4 +177,19 @@ func replaceDB(dsn, newDB string) string {
 		return dsn[:i+len("/"+newDB)]
 	}
 	return dsn[:i] + "/" + newDB + dsn[i+j:]
+}
+
+// esResetDeTransporte detecta el corte de conexion del motor portable (no
+// del DDL): reset del socket, cierre forzado o timeout de dial.
+func esResetDeTransporte(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	for _, frag := range []string{"wsarecv", "forcibly closed", "connection reset", "broken pipe", "unexpected EOF", "connect: connection refused"} {
+		if strings.Contains(s, frag) {
+			return true
+		}
+	}
+	return false
 }

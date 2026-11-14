@@ -18,15 +18,47 @@ bad() { printf 'FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
 # Preflight de recursos: una sesión cargada dispara 0xc0000142 (el
 # compilador no consigue inicializar DLLs y el fallo parece del código).
 # Se detecta antes de dejar un rojo engañoso.
-# El fallo real es el heap de escritorio de la sesion: cuenta procesos y
-# consolas, no solo RAM. Con la sesion cargada compile.exe muere con
-# 0xc0000142 aunque haya memoria (docs/runbooks/dev-host.md).
+# Dos dimensiones medidas: procesos/consolas (heap de escritorio) y memoria
+# libre real. Con menos de 1,5 GB libres compile.exe muere de forma
+# esporádica y en paquetes distintos cada vez (docs/runbooks/dev-host.md).
 procs=$(tasklist //FO CSV 2>/dev/null | wc -l | tr -d ' ')
 consolas=$(tasklist //FO CSV 2>/dev/null | grep -icE '"(OpenConsole|powershell|pwsh)\.exe')
+libres=$(powershell -NoProfile -Command '[int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1024)' 2>/dev/null | tr -cd '0-9')
+# Umbrales medidos en este host: 20 enlaces seguidos pasaron con 1.365 MB
+# libres. El unico rojo por memoria aparecio al compilar dos cosas pesadas a
+# la vez (la suite y una prueba de 20 enlaces) con 466 procesos. Regla: la
+# memoria disponible fluctua y Windows reclama cache sola, asi que solo es
+# rojo por debajo de 700 MB; entre 700 y 1.200 se avisa.
 if [ "${procs:-0}" -gt 620 ]; then
-  bad "preflight: $procs procesos / $consolas consolas. Corre: bash scripts/dev/reap.sh x --orphans"
+  bad "preflight: $procs procesos / $consolas consolas / ${libres:-?} MB libres. Corre: bash scripts/dev/reap.sh x --orphans"
+elif [ -n "${libres:-}" ] && [ "$libres" -lt 700 ]; then
+  bad "preflight: solo ${libres} MB libres de memoria (minimo 700). Corre: bash scripts/dev/reap.sh && wsl --shutdown"
+elif [ -n "${libres:-}" ] && [ "$libres" -lt 1200 ]; then
+  printf 'aviso preflight: %s MB libres y %s procesos; justo de memoria. No compiles otra cosa en paralelo.\n' "$libres" "$procs"
+  ok "preflight: $procs procesos, $consolas consolas y ${libres} MB libres (justo)"
 else
-  ok "preflight: $procs procesos y $consolas consolas"
+  ok "preflight: $procs procesos, $consolas consolas y ${libres:-?} MB libres"
+fi
+
+# Motor de test compartido: sin Redis en 16379, los paquetes que lo usan
+# fallan con "connection refused" y parece codigo. Se arranca el portable si
+# falta (mismo criterio que scripts/api/contract_test.sh).
+if ! (echo >"/dev/tcp/127.0.0.1/16379") 2>/dev/null; then
+  RBIN="${REDIS_SERVER_BIN:-$HOME/tools/redis/Redis-7.4.3-Windows-x64-msys2/redis-server.exe}"
+  if [ -x "$RBIN" ]; then
+    "$RBIN" --port 16379 --save "" --appendonly no --bind 127.0.0.1 >/dev/null 2>&1 &
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      (echo >"/dev/tcp/127.0.0.1/16379") 2>/dev/null && break
+      sleep 0.3
+    done
+    (echo >"/dev/tcp/127.0.0.1/16379") 2>/dev/null \
+      && ok "redis de test arrancado en 16379" \
+      || bad "redis no arranca en 16379 (los tests que lo usan fallaran)"
+  else
+    bad "redis ausente (REDIS_SERVER_BIN) y nada en 16379"
+  fi
+else
+  ok "redis de test escuchando en 16379"
 fi
 
 TASKS=$(ls docs/blueprint/TASKS/*.md 2>/dev/null)

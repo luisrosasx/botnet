@@ -118,9 +118,21 @@ func TestRedis90sChaos(t *testing.T) {
 	}
 
 	// AC2: gb_used reconstruido desde la fuente fria, error <=0,5 %.
-	rebuilt, err := rdb.Get(ctx, gbKey).Float64()
-	if err != nil {
-		t.Fatalf("gb_used no reconstruido: %v", err)
+	// La reanudacion y la reconstruccion son asincronas: se espera a que la
+	// clave reaparezca (hasta 15 s) en vez de leer una sola vez, que hacia
+	// flaky el test por una carrera, no por el comportamiento.
+	var rebuilt float64
+	var errGet error
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		rebuilt, errGet = rdb.Get(ctx, gbKey).Float64()
+		if errGet == nil || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	if errGet != nil {
+		t.Fatalf("gb_used no reconstruido: %v", errGet)
 	}
 	rel := abs(rebuilt-truthGB) / truthGB
 	if rel > 0.005 {

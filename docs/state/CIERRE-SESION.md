@@ -33,32 +33,41 @@ Resumen para cerrar limpio. Lo que se hizo, en qué estado queda y qué falta.
 
 ## El fallo que reaparece: `0xc0000142`
 
-El compilador de Go no consigue inicializar DLLs. **No es el código.**
+**Causa principal: Windows Defender.** Puso en cuarentena el binario que Go
+acababa de enlazar (`%TEMP%\go-build*\exe\a.out.exe`) detectándolo como
+`Trojan:Win32/Bearfoos.A!ml`, falso positivo típico de binarios Go. Nueve
+detecciones el 11/11, origen «Protección en tiempo real», acción «Cuarentena»,
+proceso `go.exe`. Por eso el fallo era determinista en los mismos paquetes.
 
-- Causa: memoria del host, no procesos. Con Chrome, el editor y WSL
-  delante quedaban 1,8 GB libres; un build fan-out muere ahí.
-- Aplicado: `GOFLAGS=-p=2`, gate con `-p 1` en build/vet/test, reaper de
-  residuos, preflight por procesos y `wsl --shutdown` para recuperar 600 MB.
-- Con eso, `go build -p 1 ./...` (15 s) y `go vet -p 1 ./...` (30 s) pasan.
-- Detalle completo en `docs/runbooks/dev-host.md` y deuda **D-17**.
+- Arreglo: `scripts/dev/defender-exclusions.ps1` (exclusiones de rutas y
+  procesos del toolchain) y **protección en tiempo real reactivada**, que
+  estaba apagada desde las 13:39 del 14/11.
+- `scripts/env.sh` fija `GOTMPDIR=$HOME/go-tmp`: el enlace ya no ocurre en
+  `%TEMP%`, donde Defender mira.
+- Comprobado con la protección activa: 20 enlaces seguidos de
+  `internal/watchdog` y `pkg/geoip`, cero rojos y cero detecciones nuevas.
+- Sobra decir que no basta con `reap.sh` y `wsl --shutdown`: eso es la otra
+  mitad del problema.
 
-## Segunda vuelta del mismo fallo
+## Factor secundario: memoria y procesos
 
-Volvió porque el gate corría la suite entera en un solo proceso y la memoria
-se acumulaba hasta romper `compile.exe` igual. Arreglado por la vía que sí
-acota el pico:
+Sigue siendo real (24 CPUs, 443 procesos, 1,8 GB libres de 16 GB) y por eso se
+conservan las mitigaciones, ahora como protección contra lentitud y fallos
+esporádicos:
 
-- La suite va en **tandas de 6 paquetes**: cada `go test` termina, libera y el
-  pico no crece.
-- La partición usaba `for x in $(...)`, que parte por palabras y dejaba
-  `go test` sin paquetes (compilaba `.` y fallaba). Ahora `while read` sobre
-  proceso sustituido.
-- Con las tandas ya corriendo salió un fallo **real** de portabilidad:
-  `TestRebuildUnder1s` cronometraba desde el cliente y el volcado de 86k filas
-  por TCP sobre el Postgres portable tarda 19 s. El criterio es la consulta, no
-  el transporte: mide con `EXPLAIN ANALYZE` el tiempo del motor y sigue exigiendo
-  index scan.
-- Detalle completo en `docs/runbooks/dev-host.md` y deuda **D-17**.
+- `GOFLAGS=-p=2`, gate con `-p 1` en build/vet/test, reaper de residuos,
+  preflight por procesos y `wsl --shutdown` para recuperar 600 MB.
+- La suite va en **tandas de 6 paquetes**: cada `go test` termina y libera.
+  La partición usa `while read` sobre proceso sustituido (el `for x in $(...)`
+  partía por palabras y dejaba `go test` sin paquetes).
+
+Y de la tanda salió un fallo **real** de portabilidad: `TestRebuildUnder1s`
+cronometraba desde el cliente y el volcado de 86k filas por TCP sobre el
+Postgres portable tarda 19 s. El criterio es la consulta, no el transporte:
+mide con `EXPLAIN ANALYZE` el tiempo del motor y sigue exigiendo index scan.
+
+- Detalle completo en `docs/runbooks/dev-host.md`; deudas **D-17** (cerrada) y
+  **D-18** (memoria, viva).
 
 ## Qué queda abierto
 

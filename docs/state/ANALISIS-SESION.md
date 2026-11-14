@@ -90,25 +90,56 @@ Lo que no existe:
 ## 3. El bloqueo de hoy: `0xc0000142`
 
 El gate local empezó a fallar de forma repetida en el mismo sitio con
-`compile.exe: exit status 0xc0000142` (`STATUS_DLL_INIT_FAILED`). No es código:
+`compile.exe: exit status 0xc0000142` (`STATUS_DLL_INIT_FAILED`).
 
-- Causa medidas: 24 CPUs hacen que Go abra hasta 24 `compile.exe` a la vez; con la
-  sesión cargada (443 procesos, 22 `powershell.exe`, 23 `OpenConsole.exe`) y **1,8 GB
-  libres de 16 GB** con Chrome, el editor y WSL delante, Windows deja de inicializar
-  procesos.
-- Aplicado: `-p=2` en `GOFLAGS`, gate en serie (`-p 1`), reaper de residuos, preflight
-  y runbook `docs/runbooks/dev-host.md`.
-- Seguía fallando porque la suite completa en un proceso acumula memoria. Se partió en
-  tandas de 6 paquetes: cada `go test` termina y libera, y el pico queda acotado.
-- El bug de la partición era mío: `for x in $(...)` parte por palabras y dejaba
-  `go test` sin paquetes. Corregido con `while read` sobre proceso sustituido.
-- Con la tanda ya ejecutándose salió un fallo **real de portabilidad**:
-  `TestRebuildUnder1s` medía con el reloj del cliente y el volcado de 86k filas por TCP
-  sobre el Postgres portable de Windows tarda 19 s. El criterio habla de la consulta,
-  no del transporte: ahora mide el tiempo del motor con `EXPLAIN ANALYZE` (JSON) y
-  sigue exigiendo index scan. Verde en 30 s de paquete.
+**Causa principal: Windows Defender.** El registro del propio antivirus lo prueba:
+9 detecciones de `Trojan:Win32/Bearfoos.A!ml` (heurística ML, falso positivo típico de
+binarios Go) sobre `%TEMP%\go-build*\b339\exe\a.out.exe`, el binario que `go.exe` acababa
+de enlazar, con acción `Cuarentena` y origen `Protección en tiempo real`. Defender comía
+el binario recién escrito y el link fallaba siempre en los mismos paquetes, incluso con
+`-p 1`. Eso es lo que la hipótesis de memoria no explicaba: un problema de recursos no es
+determinista por paquete.
 
-Detalle completo en `docs/runbooks/dev-host.md` y deuda D-17.
+Arreglo aplicado: `scripts/dev/defender-exclusions.ps1` excluye las rutas de Go (caché,
+módulos, temporal, toolchain y proyecto) y los procesos del compilador, y **reactiva la
+protección en tiempo real**, que estaba apagada desde las 13:39 del 14/11. Además
+`scripts/env.sh` fija `GOTMPDIR=$HOME/go-tmp` para que el enlace no ocurra en `%TEMP%`.
+Comprobado con la protección activa: 20 enlaces seguidos de `internal/watchdog` y
+`pkg/geoip`, cero rojos y cero detecciones nuevas.
+
+Factor secundario real: memoria y procesos del host (24 CPUs, 443 procesos, 1,8 GB libres).
+Se conservan `-p=2`, la suite por tandas, el reaper y el preflight, ahora como protección
+contra lentitud y fallos esporádicos, no como cura. Deuda D-18.
+
+De paso salió un fallo real de portabilidad: `TestRebuildUnder1s` medía con el reloj del
+cliente y el volcado de 86k filas por TCP sobre el Postgres portable de Windows tarda 19 s.
+Ahora mide el tiempo del motor con `EXPLAIN ANALYZE` (JSON) y sigue exigiendo index scan.
+
+Detalle completo en `docs/runbooks/dev-host.md`.
+
+## 3.1. Compilación completa
+
+Un solo comando, `bash scripts/build/all.sh`, encadena todo y guarda la evidencia en
+`docs/verification/evidence/build-<fecha>.log`. Resultado del 2026-11-14, salida 0:
+
+| Paso | Resultado |
+|---|---|
+| preflight | 450 procesos, 33 consolas, 2.051 MB libres |
+| redis de test en 16379 | arriba |
+| `go build` / `go vet` en serie | ok |
+| suite completa por tandas de 6 | ok, cero `--- FAIL` |
+| build del panel (Next) | ok |
+| matriz cross 6 arquitecturas | ok: amd64 2,55 MB, arm64 2,19, armv5 2,24, armv7 2,23, mipsbe 2,21, mipsle 2,25 (todas estáticas, `CGO_ENABLED=0`) |
+| firma y verificación ed25519 | ok |
+| humo de arranque (doble nativo, endianness de los 6 ELF) | ok |
+| gate de blueprint y de estado | `PASS` |
+
+Por el camino aparecieron dos fallos propios, ya corregidos: el `reap.sh` mataba
+`redis-server`, que es motor de test y no residuo (ahora solo con `--engines`), y el
+caos de Redis leía `gb_used` una sola vez en vez de esperar a la reconstrucción
+asíncrona. El gate además arranca el Redis de test si falta, para no dar un
+«connection refused» que parece del código.
+
 
 ## 4. Próximos pasos
 

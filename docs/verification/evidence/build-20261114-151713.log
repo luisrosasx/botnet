@@ -1,0 +1,149 @@
+BOT.NET — compilacion completa (20261114-151713)
+host=MINGW64_NT-10.0-26300 go=go1.27.4
+GOTMPDIR=/c/Users/LAnge/go-tmp  GOFLAGS=-mod=mod -p=2
+
+=== entorno ===
+ok   go build (suelo)
+
+=== check-implementation ===
+ok   preflight: 450 procesos, 33 consolas y 2051 MB libres
+ok   redis de test escuchando en 16379
+ok   tasks DONE=102/102
+ok   toda task bloqueada declara MOTIVO
+ok   verificación 1:1 PASS por AC en las 14 epics
+ok   sin filas FAIL
+ok   go build
+ok   go vet
+ok   go test (tandas de 6 paquetes)
+ok   web build
+---
+RESULTADO: PASS
+ok   check-implementation
+
+=== matriz cross 6 archs ===
+== amd64: linux amd64 (GOARM=off) CGO_ENABLED=0
+ok   amd64       2547720 B (2.55 MB) class A static CGO_ENABLED=0
+== arm64: linux arm64 (GOARM=off) CGO_ENABLED=0
+ok   arm64       2187056 B (2.19 MB) class A static CGO_ENABLED=0
+== armv5: linux arm (GOARM=5) CGO_ENABLED=0
+ok   armv5       2243040 B (2.24 MB) class B static CGO_ENABLED=0
+== armv7: linux arm (GOARM=7) CGO_ENABLED=0
+ok   armv7       2234352 B (2.23 MB) class B static CGO_ENABLED=0
+== mipsbe: linux mips (GOARM=off) CGO_ENABLED=0
+ok   mipsbe      2207748 B (2.21 MB) class C static CGO_ENABLED=0
+== mipsle: linux mipsle (GOARM=off) CGO_ENABLED=0
+ok   mipsle      2246544 B (2.25 MB) class C static CGO_ENABLED=0
+(TOTALS)
+   2547720 botd-amd64
+   2187056 botd-arm64
+   2243040 botd-armv5
+   2234352 botd-armv7
+   2207748 botd-mipsbe
+   2246544 botd-mipsle
+  13666460 (TOTALS)
+cross OK: 6/6 ELFs estaticos en /c/Users/LAnge/orca/projects/BOT.NET/dist version=7c5f912
+ok   matriz cross 6 archs
+
+=== firma del release ===
+sign: dist/ version=7c5f912 entradas=6 -> dist//manifest.json
+sign_release: OK dist//manifest.json version=7c5f912
+ok   firma del release
+
+=== verificacion del release ===
+verify: OK 6 entradas version=7c5f912
+verify_release: OK
+ok   verificacion del release
+
+=== humo de arranque ===
+ok   amd64 endianness magic LE OK
+ok   arm64 endianness magic LE OK
+ok   armv5 endianness magic LE OK
+ok   armv7 endianness magic LE OK
+ok   mipsbe endianness magic BE OK
+ok   mipsle endianness magic LE OK
+qemu-smoke: qemu-user disponible para 0/6 archs -> doble nativo
+ENROLL 201 node_id=11111111-2222-3333-4444-555555555555 slug=smokeslug1234
+HEARTBEAT 200 ok
+qemu-smoke: OK (doble nativo; gate QEMU 6/6 pendiente de qemu-user en host)
+ok   humo de arranque
+
+=== check-blueprint ===
+ok   existe docs/blueprint/BLUEPRINT.md
+ok   existe docs/blueprint/BACKLOG.md
+ok   existe docs/blueprint/EPICS
+ok   existe docs/blueprint/TASKS
+ok   14 epics
+ok   ficheros de tasks=14
+ok   total de tasks=102
+ok   IDs de task unicos
+ok   IDs de epic unicos
+ok   BLUEPRINT referencia los 14 epics
+ok   todas las tasks con >=3 criterios y campos obligatorios
+ok   criterios de aceptacion totales=306
+ok   menciones a criterios vagos=0
+ok   S1 bloqueante A2-01 tiene task
+ok   S1 bloqueante A3-01 tiene task
+ok   S1 bloqueante A3-06 tiene task
+ok   BACKLOG con trazabilidad
+ok   blueprint con injertos marcados
+---
+RESULTADO: PASS
+ok   check-blueprint
+
+=== check-state-doc ===
+ok   existe y no está vacío: ESTADO-ACTUAL.md
+ok   existe y no está vacío: DEUDA-Y-RIESGOS.md
+ok   existe y no está vacío: PROXIMOS-PASOS.md
+ok   ESTADO-ACTUAL.md con 10 secciones (mínimo 10)
+ok   ESTADO-ACTUAL.md cubre «Resumen ejecutivo»
+ok   ESTADO-ACTUAL.md cubre «Inventario por capa»
+ok   ESTADO-ACTUAL.md cubre «Métricas recomputadas»
+ok   ESTADO-ACTUAL.md cubre «Cobertura de verificación»
+ok   ESTADO-ACTUAL.md cubre «Lo que no existe»
+ok   DEUDA-Y-RIESGOS.md con 6 secciones (mínimo 6)
+ok   DEUDA-Y-RIESGOS.md cubre «Deuda técnica»
+ok   DEUDA-Y-RIESGOS.md cubre «Riesgos de producto»
+ok   DEUDA-Y-RIESGOS.md cubre «Limitaciones aceptadas»
+ok   DEUDA-Y-RIESGOS.md cubre «pendientes de medición de campo»
+ok   DEUDA-Y-RIESGOS.md cubre «Prioridad de cierre»
+ok   PROXIMOS-PASOS.md con 7 secciones (mínimo 6)
+ok   PROXIMOS-PASOS.md cubre «P0»
+ok   PROXIMOS-PASOS.md cubre «P1»
+ok   PROXIMOS-PASOS.md cubre «P2»
+ok   PROXIMOS-PASOS.md cubre «P3»
+ok   PROXIMOS-PASOS.md cubre «Orden recomendado»
+ok   cifra «Tasks del backlog» = 102
+ok   cifra «Tasks en DONE» = 102
+ok   cifra «Tasks bloqueadas» = 0
+ok   cifra «Criterios de aceptación» = 306
+ok   cifra «Criterios PASS» = 306
+ok   cifra «Criterios FAIL» = 0
+ok   cifra «Ficheros Go» = 280
+ok   líneas de Go doc=39898 real=39964 (tolerancia 300)
+ok   cifra «Funciones de test» = 424
+ok   cifra «Paquetes Go» = 44
+ok   cifra «Informes de verificación» = 14
+ok   cifra «Runbooks» = 21
+ok   cifra «Migraciones» = 9
+ok   commits doc=29 real=32 (tolerancia 15)
+ok   ficheros versionados doc=536 real=551 (tolerancia 40)
+ok   entradas sin trackear doc=0 real=18 (métrica viva, tolerancia 40)
+ok   deuda de campo EP-01 = 6
+ok   deuda de campo EP-02 = 8
+ok   deuda de campo EP-03 = 5
+ok   deuda de campo EP-05 = 5
+ok   deuda de campo EP-06 = 2
+ok   deuda de campo EP-07 = 11
+ok   deuda de campo EP-08 = 4
+ok   deuda de campo EP-09 = 6
+ok   deuda de campo EP-12 = 2
+ok   total de pendientes de campo = 49
+ok   plan con 20 pasos
+ok   todos los pasos con prioridad, coste, rol y criterio de cierre
+ok   sin TODO ni secciones por rellenar
+ok   sin secciones vacías
+---
+RESULTADO: PASS
+ok   check-state-doc
+
+RESULTADO: PASS — evidencia en docs/verification/evidence/build-20261114-151713.log

@@ -13,5 +13,12 @@ export CGO_ENABLED=0
 export GOFLAGS="-mod=mod -p=2"
 export GOTOOLCHAIN=local
 export GOPATH="${GOPATH:-$HOME/go}"
+# GOTMPDIR fuera de %TEMP%: el enlazador de Go escribia el binario de test
+# en %TEMP%\go-build*\exe\a.out.exe y Windows Defender lo ponia en
+# cuarentena como Trojan:Win32/Bearfoos.A!ml (falso positivo de binarios
+# Go). El link fallaba con 0xc0000142 y parecia un fallo de codigo.
+# Esta ruta va excluida en Defender: docs/runbooks/dev-host.md.
+export GOTMPDIR="${GOTMPDIR:-$HOME/go-tmp}"
+mkdir -p "$GOTMPDIR" 2>/dev/null || true
 export BOTNET_ENV=test
 go version >/dev/null 2>&1 || { echo "Go no disponible en PATH" >&2; exit 1; }
