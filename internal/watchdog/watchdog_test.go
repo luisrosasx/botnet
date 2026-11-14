@@ -392,9 +392,12 @@ func TestSilenceReplacesHungChild(t *testing.T) {
 	}
 	mu.Unlock()
 	// El releve (silencio 1 s + kill + revive 100 ms) debe ser casi
-	// inmediato: la cota de produccion es silencio 30 s + margen.
-	if gap > 3*time.Second {
-		t.Fatalf("releve por silencio tardo %v, want < 3 s", gap)
+	// inmediato: la cota de produccion es silencio 30 s + margen. El
+	// umbral es 5 s y no 3: bajo carga del host (suite en tandas, otros
+	// procesos) el arranque de un proceso se come el margen y el test
+	// fallaba por el host, no por el watchdog.
+	if gap > 5*time.Second {
+		t.Fatalf("releve por silencio tardo %v, want < 5 s", gap)
 	}
 
 	if len(seen) >= 1 && runtime.GOOS != "windows" {

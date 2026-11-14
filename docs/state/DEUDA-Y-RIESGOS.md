@@ -29,6 +29,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | D-08 | ✅ | ~~`tmp_*` en la raíz~~: movidos a `testdata/doubles/` | fuera de `go list ./...` | cerrado en S-03 | — |
 | D-09 | ✅ | ~~dist/raw a mano~~ | `build_matrix.sh` lo genera; sonda en `scripts/qemu/probe` | cerrado en S-04 | — |
 | D-10 | ✅ | ~~`*.exe` global~~ | `.gitignore` acota a `/*.exe` y `/dist/` | cerrado en S-01 | — |
+| D-17 | S2 | Agotamiento de recursos del host Windows: el compilador muere con `0xc0000142` bajo presión de memoria y procesos | `docs/runbooks/dev-host.md`; medido 1,8 GB libres con 443 procesos | Gates en rojo que parecen fallos de código | Tope `-p=2` en env, gate en serie por tandas, reaper y preflight (aplicado) |
 | D-15 | S3 | El reintento de transporte solo cubre la lectura del gate de enroll (`queryRowRetry`); el resto de lecturas siguen devolviendo 500 ante un reset | `cmd/botnet-api/repo/retry.go` | Un reset bajo carga sigue dando 500 en otras rutas | Extender `queryRowRetry` a las lecturas de sesión y panel |
 | D-11 | ✅ | ~~Fragilidad de timing en tests de loopback~~: guarda del buffer y reintento de dial en `rdv` | 10 ejecuciones seguidas verdes | cerrado en S-09 | — |
 | D-12 | ✅ | ~~`deps.go` sin explicación~~: comentario del porqué | — | cerrado en S-20 | — |

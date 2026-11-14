@@ -124,7 +124,7 @@ verificación que rechaza una firma alterada en un bit, `botctl status` con asse
 | Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 424 |
 | Paquetes Go | `go list ./... \| wc -l` | 44 |
 | Informes de verificación | `ls docs/verification/*.md \| wc -l` | 14 |
-| Runbooks | `ls docs/runbooks/*.md \| wc -l` | 20 |
+| Runbooks | `ls docs/runbooks/*.md \| wc -l` | 21 |
 | Migraciones | `ls migrations/*.sql \| wc -l` | 9 |
 | Commits | `git rev-list --count HEAD` | 29 |
 | Ficheros versionados | `git ls-files \| wc -l` | 536 |
