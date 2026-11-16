@@ -100,13 +100,6 @@ func PG(t *testing.T) *sql.DB {
 		t.Fatalf("testenv PG open: %v", err)
 	}
 	t.Cleanup(func() { db.Close() })
-	// El motor portable de Windows cierra conexiones ociosas y el pgx se
-	// queda con una muerta: la siguiente lectura revienta con `wsarecv:
-	// forcibly closed`. Sin reutilizar conexiones ociosas el pool abre una
-	// nueva por consulta (mas lento en el host, nada en CI) y el test deja
-	// de ponerse rojo por el motor.
-	db.SetMaxIdleConns(0)
-	db.SetConnMaxIdleTime(0)
 	// El Postgres portable del host tiene ventanas de dial-timeout
 	// transitorias (las documenta ep08_ddl_test): el migrate se reintenta
 	// acotado para que el test no se ponga rojo por el motor. Apply es

@@ -111,3 +111,19 @@ ok   check-state-doc
 === herramientas de campo ===
 == herramientas de campo ==
 ok   bootstrap
+ok   collect
+ok   latency
+ok   rss
+ok   netem
+ok   revoke_mass --help
+ok   revoke_mass rechaza flag invalido
+ok   load_250_1000 --help
+ok   load_250_1000 rechaza flag invalido
+== validador de cierre de campo ==
+ok   check-field-closure (test)
+ok   check-field-closure --strict
+
+RESULTADO: PASS
+ok   herramientas de campo
+
+RESULTADO: FAIL (1 comprobaciones) — detalle en docs/verification/evidence/build-20261116-022341.log

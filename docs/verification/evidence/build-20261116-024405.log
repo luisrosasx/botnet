@@ -1,0 +1,43 @@
+BOT.NET — compilacion completa (20261116-024405)
+host=MINGW64_NT-10.0-26300 go=go1.27.4
+GOTMPDIR=/c/Users/LAnge/go-tmp  GOFLAGS=-mod=mod -p=2
+
+=== entorno ===
+ok   go build (suelo)
+
+=== check-implementation ===
+ok   preflight: 467 procesos, 35 consolas y 1679 MB libres
+ok   redis de test escuchando en 16379
+ok   tasks DONE=102/102
+ok   toda task bloqueada declara MOTIVO
+ok   verificación 1:1 PASS por AC en las 14 epics
+ok   sin filas FAIL
+ok   go build
+ok   go vet
+FAIL go test falla en: github.com/botnet/botnet/cmd/botctl github.com/botnet/botnet/cmd/botd github.com/botnet/botnet/cmd/botnet-api github.com/botnet/botnet/cmd/botnet-api/handlers github.com/botnet/botnet/cmd/botnet-api/jobs github.com/botnet/botnet/cmd/botnet-api/middleware
+       --- FAIL: TestPurgeRGPDFixture (17.46s)
+           purge_test.go:15: rgpd-check: fixture leave (limpieza): failed to connect to `user=botnet database=botnet_ep08_23556_3`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       --- FAIL: TestRebuildUnder1s (6.66s)
+           retention_test.go:150: failed to connect to `user=botnet database=botnet_ep08_23556_6`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       FAIL
+       FAIL	github.com/botnet/botnet/cmd/botnet-api/jobs	46.104s
+       ok  	github.com/botnet/botnet/cmd/botnet-api/middleware	0.051s
+       FAIL
+FAIL go test falla en: github.com/botnet/botnet/cmd/botnet-api/nats github.com/botnet/botnet/cmd/botnet-api/repo github.com/botnet/botnet/cmd/botnet-api/services github.com/botnet/botnet/cmd/botnet-build github.com/botnet/botnet/cmd/botnet-discover github.com/botnet/botnet/cmd/botnet-gw
+           apikey_cache_test.go:30: SeedKey: failed to connect to `user=botnet database=botnet_ep08_20796_1`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       --- FAIL: TestHealthzWaitsForWarmup (4.66s)
+           apikey_cache_test.go:83: SeedKey: failed to connect to `user=botnet database=botnet_ep08_20796_2`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       --- FAIL: TestRevokedKeyFailsWhenCacheExpires (15.29s)
+           apikey_cache_test.go:117: SeedTenant: failed to connect to `user=botnet database=botnet_ep08_20796_3`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       FAIL
+       FAIL	github.com/botnet/botnet/cmd/botnet-gw	33.984s
+       FAIL
+FAIL go test falla en: github.com/botnet/botnet/cmd/botnet-rdv github.com/botnet/botnet/cmd/botnet-strike github.com/botnet/botnet/deploy/headscale github.com/botnet/botnet/internal/accounting github.com/botnet/botnet/internal/agent github.com/botnet/botnet/internal/backend
+       ok  	github.com/botnet/botnet/deploy/headscale	0.014s
+       ok  	github.com/botnet/botnet/internal/accounting	0.033s
+       ok  	github.com/botnet/botnet/internal/agent	12.622s
+       --- FAIL: TestRedis90sChaos (4.69s)
+           degraded_test.go:54: failed to connect to `user=botnet database=botnet_ep08_57236_1`: 127.0.0.1:5433 (127.0.0.1): dial error: dial tcp 127.0.0.1:5433: connectex: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder.
+       FAIL
+       FAIL	github.com/botnet/botnet/internal/backend	4.720s
+       FAIL
