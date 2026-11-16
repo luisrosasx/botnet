@@ -105,6 +105,20 @@ while read -r grupo; do
   set -- $grupo
   shift # fuera la clave numerica del grupo: solo paquetes
   if ! go test -p 1 -count=1 "$@" >/tmp/ci_test_chunk.log 2>&1; then
+    # Reintento unico cuando el fallo huele a motor y no a asercion: el
+    # Postgres portable de Windows suelta dial-timeout y reset de conexion
+    # bajo carga (docs/runbooks/dev-host.md). Un fallo de codigo trae
+    # mensajes de asercion y no se enmascara: se exige que TODAS las lineas
+    # de fallo sean de motor y que la segunda pasada pase.
+    if grep -qE 'dial error|wsarecv|connectex|forcibly closed|connection refused|i/o timeout' /tmp/ci_test_chunk.log \
+       && ! grep -E '^\s+.*_test\.go:[0-9]+:' /tmp/ci_test_chunk.log | grep -vqE 'dial error|wsarecv|connectex|forcibly closed|connection refused|i/o timeout|failed to connect'; then
+      printf 'aviso reintento por motor: %s\n' "$*"
+      if go test -p 1 -count=1 "$@" >/tmp/ci_test_chunk2.log 2>&1; then
+        ok "go test (reintento por motor) $*"
+        continue
+      fi
+      tail -4 /tmp/ci_test_chunk2.log | sed 's/^/       /'
+    fi
     chunk_fail=1
     bad "go test falla en: $*"
     tail -8 /tmp/ci_test_chunk.log | sed 's/^/       /'

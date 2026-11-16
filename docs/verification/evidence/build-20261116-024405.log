@@ -41,3 +41,100 @@ FAIL go test falla en: github.com/botnet/botnet/cmd/botnet-rdv github.com/botnet
        FAIL
        FAIL	github.com/botnet/botnet/internal/backend	4.720s
        FAIL
+scripts/check-implementation.sh: line 114: ODAS: command not found
+FAIL go test falla en: github.com/botnet/botnet/scripts/soak github.com/botnet/botnet/scripts/soak/apistub
+       ?   	github.com/botnet/botnet/scripts/soak	[no test files]
+       ?   	github.com/botnet/botnet/scripts/soak/apistub	[no test files]
+scripts/check-implementation.sh: line 128: syntax error near unexpected token `fi'
+scripts/check-implementation.sh: line 128: `  fi'
+FAIL check-implementation
+
+=== check-blueprint ===
+ok   existe docs/blueprint/BLUEPRINT.md
+ok   existe docs/blueprint/BACKLOG.md
+ok   existe docs/blueprint/EPICS
+ok   existe docs/blueprint/TASKS
+ok   14 epics
+ok   ficheros de tasks=14
+ok   total de tasks=102
+ok   IDs de task unicos
+ok   IDs de epic unicos
+ok   BLUEPRINT referencia los 14 epics
+ok   todas las tasks con >=3 criterios y campos obligatorios
+ok   criterios de aceptacion totales=306
+ok   menciones a criterios vagos=0
+ok   S1 bloqueante A2-01 tiene task
+ok   S1 bloqueante A3-01 tiene task
+ok   S1 bloqueante A3-06 tiene task
+ok   BACKLOG con trazabilidad
+ok   blueprint con injertos marcados
+---
+RESULTADO: PASS
+ok   check-blueprint
+
+=== check-state-doc ===
+ok   existe y no está vacío: ESTADO-ACTUAL.md
+ok   existe y no está vacío: DEUDA-Y-RIESGOS.md
+ok   existe y no está vacío: PROXIMOS-PASOS.md
+ok   ESTADO-ACTUAL.md con 10 secciones (mínimo 10)
+ok   ESTADO-ACTUAL.md cubre «Resumen ejecutivo»
+ok   ESTADO-ACTUAL.md cubre «Inventario por capa»
+ok   ESTADO-ACTUAL.md cubre «Métricas recomputadas»
+ok   ESTADO-ACTUAL.md cubre «Cobertura de verificación»
+ok   ESTADO-ACTUAL.md cubre «Lo que no existe»
+ok   DEUDA-Y-RIESGOS.md con 6 secciones (mínimo 6)
+ok   DEUDA-Y-RIESGOS.md cubre «Deuda técnica»
+ok   DEUDA-Y-RIESGOS.md cubre «Riesgos de producto»
+ok   DEUDA-Y-RIESGOS.md cubre «Limitaciones aceptadas»
+ok   DEUDA-Y-RIESGOS.md cubre «pendientes de medición de campo»
+ok   DEUDA-Y-RIESGOS.md cubre «Prioridad de cierre»
+ok   PROXIMOS-PASOS.md con 7 secciones (mínimo 6)
+ok   PROXIMOS-PASOS.md cubre «P0»
+ok   PROXIMOS-PASOS.md cubre «P1»
+ok   PROXIMOS-PASOS.md cubre «P2»
+ok   PROXIMOS-PASOS.md cubre «P3»
+ok   PROXIMOS-PASOS.md cubre «Orden recomendado»
+ok   cifra «Tasks del backlog» = 102
+ok   cifra «Tasks en DONE» = 102
+ok   cifra «Tasks bloqueadas» = 0
+ok   cifra «Criterios de aceptación» = 306
+ok   cifra «Criterios PASS» = 306
+ok   cifra «Criterios FAIL» = 0
+ok   cifra «Ficheros Go» = 281
+ok   líneas de Go doc=40230 real=40230 (tolerancia 300)
+ok   cifra «Funciones de test» = 425
+ok   cifra «Paquetes Go» = 44
+ok   cifra «Informes de verificación» = 14
+ok   cifra «Runbooks» = 22
+ok   cifra «Migraciones» = 9
+ok   commits doc=29 real=36 (tolerancia 15)
+ok   ficheros versionados doc=536 real=575 (tolerancia 40)
+ok   entradas sin trackear doc=0 real=4 (métrica viva, tolerancia 40)
+ok   deuda de campo por filas = 45 (validador en OK)
+ok   plan con 20 pasos
+ok   todos los pasos con prioridad, coste, rol y criterio de cierre
+ok   sin TODO ni secciones por rellenar
+ok   sin secciones vacías
+---
+RESULTADO: PASS
+ok   check-state-doc
+
+=== herramientas de campo ===
+== herramientas de campo ==
+ok   bootstrap
+ok   collect
+ok   latency
+ok   rss
+ok   netem
+ok   revoke_mass --help
+ok   revoke_mass rechaza flag invalido
+ok   load_250_1000 --help
+ok   load_250_1000 rechaza flag invalido
+== validador de cierre de campo ==
+ok   check-field-closure (test)
+ok   check-field-closure --strict
+
+RESULTADO: PASS
+ok   herramientas de campo
+
+RESULTADO: FAIL (1 comprobaciones) — detalle en docs/verification/evidence/build-20261116-024405.log

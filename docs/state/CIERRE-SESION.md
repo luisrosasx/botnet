@@ -100,3 +100,24 @@ rojo engañoso.
 - [x] Causa del fallo documentada con medidas
 - [x] Deuda registrada (D-17) y runbook de host
 - [ ] Confirmar el gate completo en verde tras el arreglo (en curso)
+
+## Fase de campo — F0 (2026-11-16)
+
+Maquinaria de medición construida y probada, más lo que faltaba para publicar:
+
+- **Publicado y protegido**: repo público, 4 commits empujados, `master` con checks
+  requeridos `estructura`, `panel` y `suite`. D-14 cerrada.
+- **Enredo del push**: un `GITHUB_TOKEN` viejo en el entorno pisaba el token bueno del
+  llavero; `git push` fallaba con «Invalid username or token» mientras `gh api` funcionaba.
+  Documentado en `docs/runbooks/dev-host.md`.
+- **Herramientas de campo** (7): `bootstrap.sh`, `collect.sh`, `revoke_mass.sh`,
+  `latency_pings.sh`, `rss_watch.sh`, `netem/{apply,clear}.sh`, `load_250_1000.sh`. Suite
+  unificada en `scripts/field/run_all_tests.sh`, enganchada a `scripts/build/all.sh`.
+- **Recuento de campo corregido**: 45 filas estrictas / 47 extendidas, no 49 (aquel número
+  contaba prosa). `scripts/check-field-closure.sh` es la fuente de verdad y el gate de estado
+  delega en él.
+- **Runbook de despliegue** en `docs/runbooks/field-deploy.md`; el compose valida con
+  `docker compose config`.
+
+Pendiente por falta de manos: canario (F1) y piloto (F2) necesitan dispositivos; el despliegue
+necesita un VPS con credenciales.
