@@ -86,17 +86,22 @@ if [ -n "$doc_un" ] && [ $((UNTRACKED - doc_un)) -le 40 ] && [ $((doc_un - UNTRA
 else bad "entradas sin trackear doc=$doc_un real=$UNTRACKED"; fi
 
 # --- cobertura de deuda de campo ---
-sum=0
-for f in docs/verification/EP-*.md; do
-  ep=$(basename "$f" .md)
-  real=$(grep -c 'BLOCKED-HW de campo' "$f")
-  doc=$(grep -F "| $ep |" "$S/DEUDA-Y-RIESGOS.md" | head -1 | awk -F'|' '{v=$3; gsub(/ /,"",v); print v}')
-  if [ "$real" -eq 0 ]; then continue; fi
-  [ "$doc" = "$real" ] && ok "deuda de campo $ep = $real" || bad "deuda de campo $ep: doc=$doc real=$real"
-  sum=$((sum + real))
-done
-total=$(grep -F '| **Total** |' "$S/DEUDA-Y-RIESGOS.md" | awk -F'|' '{v=$3; gsub(/[^0-9]/,"",v); print v}')
-[ "$total" = "$sum" ] && ok "total de pendientes de campo = $sum" || bad "total de pendientes: doc=$total real=$sum"
+# La cuenta la manda scripts/check-field-closure.sh, que cuenta FILAS de
+# criterio y no prosa (el grep anterior contaba lineas de texto del acta y
+# daba 49 cuando las filas reales son 45). Aqui se comprueba que el doc y el
+# validador dicen lo mismo; el detalle por epica lo publica ese script.
+if [ -x scripts/check-field-closure.sh ] || [ -f scripts/check-field-closure.sh ]; then
+  if out=$(bash scripts/check-field-closure.sh --strict 2>&1); then
+    tot=$(printf '%s' "$out" | grep -E '^TOTAL' | awk '{print $2}')
+    ok "deuda de campo por filas = ${tot:-?} (validador en OK)"
+  else
+    bad "deuda de campo: el validador de filas no cuadra con el doc"
+    printf '%s\n' "$out" | grep -E 'doc=|fila pendiente' | head -8 | sed 's/^/       /'
+  fi
+else
+  bad "falta scripts/check-field-closure.sh"
+fi
+
 
 # --- plan: columnas y campos ---
 steps=$(grep -cE '^\| S-[0-9]{2}( ✅)? \|' "$S/PROXIMOS-PASOS.md")

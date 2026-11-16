@@ -78,6 +78,10 @@ fi
 run "check-blueprint" bash scripts/check-blueprint.sh
 run "check-state-doc" bash scripts/check-state-doc.sh
 
+# 7. Herramientas de campo: cada una con su prueba ejecutada y el validador
+#    de cierre de criterios de campo (docs/verification x DEUDA).
+run "herramientas de campo" bash scripts/field/run_all_tests.sh --fast
+
 say ""
 if [ "$FAILED" -eq 0 ]; then
   say "RESULTADO: PASS — evidencia en ${LOG#$ROOT/}"

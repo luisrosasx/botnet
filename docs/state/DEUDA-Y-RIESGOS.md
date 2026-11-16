@@ -59,23 +59,34 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | L-05 | ✅ | ~~Config de headscale antiguo~~: migrado a v0.29 y versión fijada en VERSION | `headscale serve` arranca |
 | L-06 | S4 | `go.mod` declara `go 1.27` y el banco trae 1.26.8: exige `GOTOOLCHAIN=auto` | Se resuelve fijando toolchain en el banco o bajando el requisito |
 
-## 4. Criterios pendientes de medición de campo (49)
+## 4. Criterios pendientes de medición de campo (45 estrictos / 47 extendidos)
 
-Criterios con veredicto PASS sostenido por doble fiel y anotación `BLOCKED-HW de campo`. Reparto por
-épica, recomputado con `grep -c 'BLOCKED-HW de campo' docs/verification/EP-*.md`:
+Criterios cuyo veredicto `PASS` se sostiene con doble fiel y llevan anotación de campo en la propia
+fila de `docs/verification/EP-*.md`. El reparto lo computa **`scripts/check-field-closure.sh`**, que
+cuenta filas de tabla y no prosa: `bash scripts/check-field-closure.sh`.
 
-| Épica | Pendientes de campo | Qué exige el criterio |
-|---|---|---|
-| EP-01 | 6 | `masscan`, `zgrab2`, `iftop`, `make` reales |
-| EP-02 | 8 | `legba`, RouterSploit, `tc netem`, QEMU clase A/C |
-| EP-03 | 5 | RSS ≤ 3,1 MB en clase B real, iperf3, soak 30 min |
-| EP-05 | 5 | QEMU reboot ≤ 90 s, matriz de cadena de arranque, `iostat` |
-| EP-06 | 2 | iperf3 5 min, 100 pings SSH al router |
-| EP-07 | 11 | `headscale` vivo, SSH al nodo, `tcpdump`, `crontab` del dispositivo |
-| EP-08 | 4 | Bucle WS vivo, `pg_stat_statements`, `journalctl` |
-| EP-09 | 6 | `netem`, `tcpdump`, reasignación < 5 min medida |
-| EP-12 | 2 | QEMU clase B para 1.000 reinicios, job de fuzz 72 h con runner |
-| **Total** | **49** | |
+Dos columnas porque hay dos definiciones honestas: `estricto` cuenta solo la marca `BLOCKED-HW`;
+`extendido` añade las frases equivalentes que usaron algunos adversarios (`queda al soak`,
+`sin tshark aquí`). El número anterior, 49, salía de un `grep` de prosa que contaba líneas de texto
+del acta, no criterios.
+
+| Épica | Estricto | Extendido | Qué exige el criterio |
+|---|---|---|---|
+| EP-01 | 5 | 5 | `masscan`, `zgrab2`, `iftop`, `make` reales |
+| EP-02 | 7 | 7 | `legba`, RouterSploit, `tc netem`, QEMU clase A/C |
+| EP-03 | 3 | 3 | RSS ≤ 3,1 MB en clase B real, iperf3, soak 30 min |
+| EP-04 | 0 | 2 | Captura `tshark` de 1 h sobre el heartbeat |
+| EP-05 | 4 | 4 | QEMU reboot ≤ 90 s, matriz de cadena de arranque, `iostat` |
+| EP-06 | 3 | 3 | iperf3 5 min, 100 pings SSH al router, RSS con 150 streams |
+| EP-07 | 9 | 9 | `headscale` vivo, SSH al nodo, `tcpdump`, `crontab` del dispositivo |
+| EP-08 | 2 | 2 | Bucle WS vivo, `pg_stat_statements`, `journalctl` |
+| EP-09 | 4 | 4 | `netem`, `tcpdump`, reasignación < 5 min medida |
+| EP-12 | 4 | 4 | QEMU clase B para 1.000 reinicios, job de fuzz 72 h con runner |
+| EP-13 | 4 | 4 | `netem`, `dig`/`s_client`, `tcpdump`, score de Redis, `psql` |
+| **Total** | **45** | **47** | |
+
+EP-10, EP-11 y EP-14 no tienen filas pendientes de campo.
+
 
 ## 5. Deuda cerrada durante el proyecto (para no reabrirla)
 

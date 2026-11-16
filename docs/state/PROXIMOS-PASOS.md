@@ -43,9 +43,9 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 
 | # | Paso | Coste | Rol | Depende | Criterio de cierre |
 |---|---|---|---|---|---|
-| S-12 | Piloto real con 20-50 dispositivos propios y ajenos | 2 sem | field | S-05…S-11 | Los 49 criterios con nota de campo pasan a `PASS` medido; `grep -c 'BLOCKED-HW de campo' docs/verification/*.md` = 0 |
+| S-12 | Piloto real con 20-50 dispositivos propios y ajenos | 2 sem | field | S-05…S-11 | `bash scripts/check-field-closure.sh --strict` en 0: las 45 filas estrictas (47 extendidas) con evidencia en `docs/verification/evidence/field-*/` |
 | S-13 | Drill de DNS pasiva sobre la flota del piloto | 2 d | field | S-12 | ≤ 60 % de destinos correlacionables (hallazgo A1-18) |
-| S-14 | Ejercicio de revocación masiva de la CA de flota | 2 d | infra | S-12 | Revocar 100 nodos cierra sus sesiones en < 60 s y ninguno vuelve sin re-enrolar |
+| S-14 | Ejercicio de revocación masiva de la CA de flota | 2 d | infra | S-12 | `scripts/field/revoke_mass.sh` sobre 100 nodos: sesiones cerradas en < 60 s y `relapsed=0` |
 | S-15 ✅ | Precargar `pg_stat_statements` y medir con la extensión | 3 h | infra | S-02 | El delta de consultas de la suite coincide con el que reporta el motor |
 | S-16 | Medir iperf3 y latencia a 250/g y 1.000 nodos en hardware real | 3 d | field | S-12 | P99 < 1,5 s y `streams_saturated` < 10 % con nodos reales |
 
@@ -77,7 +77,14 @@ producto en marcha. Roles: `dev`, `infra`, `field`, `ops`, `legal`.
 1. S-01 y S-02 primero: sin commit ni CI, todo lo demás se construye sobre arena.
 2. S-03 y S-04 son de una hora cada uno y quitan ruido: van con S-01.
 3. S-05 a S-11 antes de pedir un solo dispositivo prestado; el piloto no debe descubrir cableado roto.
-4. S-12 abre la fase de campo y es el único paso que cierra los 49 criterios pendientes.
+4. S-12 abre la fase de campo y es el único paso que cierra los criterios pendientes de medición
+   real: 45 estrictos, 47 contando las frases equivalentes. Los cuenta
+   `bash scripts/check-field-closure.sh` por filas, no por prosa.
+
+**Herramientas de campo** (ya construidas, `bash scripts/field/run_all_tests.sh`): `bootstrap.sh`
+instala y persiste el agente en un nodo, `collect.sh` empaqueta la evidencia de una pasada,
+`revoke_mass.sh` cierra S-14, `latency_pings.sh` y `rss_watch.sh` miden EP-06 y EP-03,
+`scripts/netem/{apply,clear}.sh` aplican pérdida real y `load_250_1000.sh` mide S-16.
 
 **Parada:** si en S-12 más del 30 % de los nodos muere por causas del agente (no del dispositivo),
 se detiene el piloto y se vuelve a P1 antes de ampliar. Si el margen bruto medido a 100k cae por

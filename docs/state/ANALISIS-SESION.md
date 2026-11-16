@@ -167,3 +167,36 @@ Ordenados por lo que desbloquean. El detalle ejecutable está en
 El gate local tarda ~22 minutos y depende de que el host tenga memoria. CI en Linux
 tarda 10 minutos y no sufre el problema. Para trabajo diario conviene usar CI como
 verdad y el gate local solo antes de empujar, con `reap.sh` y `wsl --shutdown` previos.
+
+## 6. Fase de campo — habilitadores (F0)
+
+La maquinaria para medir en hardware real ya existe y está probada. Seis herramientas nuevas,
+todas con `--help`, `--dry` y salida JSON, y cada una con su prueba ejecutada:
+
+| Herramienta | Para qué | Cierra |
+|---|---|---|
+| `scripts/field/bootstrap.sh` | instala y persiste el agente en un nodo (systemd → rc → `@reboot`), siembra mtimes y anuncia el `leave_code` | EP-05 |
+| `scripts/field/collect.sh` | empaqueta una pasada de campo en `evidence/field-<fecha>-<label>/` con `INDEX.md`, sha256 y las filas de criterio citadas | toda la fase |
+| `scripts/field/revoke_mass.sh` | revoca N nodos en paralelo, espera el cierre de sesiones y detecta reincidencia | S-14 |
+| `scripts/field/latency_pings.sh` | p50/p95/p99 de 100 pings, con saturación opcional | EP-06 `T-0604 AC2` |
+| `scripts/field/rss_watch.sh` | curva de RSS con umbral (3,1 MB clase C, 6 MB con 150 streams) | EP-03 `T-0301 AC3`, `T-0306 AC1` |
+| `scripts/netem/{apply,clear}.sh` | pérdida, retardo y corrupción reales con `tc`, idempotente | EP-02 `T-0202 AC3`, EP-09 |
+| `scripts/field/load_250_1000.sh` | P99 y saturación del gateway a 250 y 1.000 nodos | S-16 |
+
+Medido, no supuesto: `revoke_mass` da `PASS` con 5 nodos contra Postgres real (`sessions_closed=10`,
+`relapsed=0`) y falla cuando inyecta un latido posterior; `load_250_1000` da p99 0,55 ms y
+saturación 4,86 % a 250 y 1.000; `netem` aplicó y retiró reglas reales en el banco Linux.
+
+**El recuento de criterios de campo estaba mal.** El «49» salía de un `grep` de prosa que contaba
+líneas del acta. Filas reales: **45** estrictas (solo marca `BLOCKED-HW`) y **47** contando las
+frases equivalentes (`queda al soak`, `sin tshark aquí`), incluidas 2 de EP-04 y 4 de EP-13 que
+nunca entraron en el recuento. `scripts/check-field-closure.sh` las cuenta por filas, cruza el
+reparto con `DEUDA-Y-RIESGOS.md`, y se pone en rojo si una fila marcada pendiente ya está citada
+por un fichero de evidencia. El gate de estado delega en él: una sola fuente de verdad.
+
+Runbook de despliegue en `docs/runbooks/field-deploy.md` (VPS, DNS, TLS, headscale, verificación y
+rollback). El compose valida con `docker compose config`.
+
+Lo que sigue necesitando manos: los dispositivos del canario y del piloto, y un VPS con
+credenciales para desplegar. Sin eso, F1/F2/F3 tienen la herramienta pero no el sujeto.
+
