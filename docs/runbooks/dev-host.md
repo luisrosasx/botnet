@@ -126,3 +126,23 @@ bash scripts/build/all.sh --fast   # solo build, vet, suite y gates (para iterar
 Deja el log en `docs/verification/evidence/build-<fecha>.log`. `make` no
 existe en este host: el script es la interfaz.
 
+
+## Empujar a GitHub: el `GITHUB_TOKEN` viejo gana
+
+Síntoma: `gh api repos/...` responde bien, pero `git push` falla con
+`remote: Invalid username or token. Password authentication is not supported for Git operations.`
+
+Causa: hay un `GITHUB_TOKEN` exportado en el entorno que ya no vale, y el ayudante de
+credenciales de `gh` lo prefiere al token bueno del llavero. `gh` CLI no falla porque usa el
+llavero, pero git pide credenciales al ayudante y recibe el token muerto.
+
+```bash
+env -u GITHUB_TOKEN git push origin master     # sanea el token del entorno, una vez
+printf 'protocol=https\nhost=github.com\n\n' | env -u GITHUB_TOKEN gh auth git-credential get
+```
+
+Si el segundo comando devuelve `username` y `password`, el llavero está bien y el problema era
+solo la variable de entorno.
+
+La rama `master` está protegida: `estructura`, `panel` y `suite` son checks requeridos, así que
+un push directo en rojo se rechaza.

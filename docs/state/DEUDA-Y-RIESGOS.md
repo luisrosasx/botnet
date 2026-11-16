@@ -34,7 +34,7 @@ Severidad: `S1` bloquea producción, `S2` duele en campo, `S3` molesto, `S4` cos
 | D-15 | S3 | El reintento de transporte solo cubre la lectura del gate de enroll (`queryRowRetry`); el resto de lecturas siguen devolviendo 500 ante un reset | `cmd/botnet-api/repo/retry.go` | Un reset bajo carga sigue dando 500 en otras rutas | Extender `queryRowRetry` a las lecturas de sesión y panel |
 | D-11 | ✅ | ~~Fragilidad de timing en tests de loopback~~: guarda del buffer y reintento de dial en `rdv` | 10 ejecuciones seguidas verdes | cerrado en S-09 | — |
 | D-12 | ✅ | ~~`deps.go` sin explicación~~: comentario del porqué | — | cerrado en S-20 | — |
-| D-14 | S2 | Repositorio privado sin GitHub Pro: la protección de rama no se puede activar | `gh api .../branches/master/protection` → 403 "Upgrade to GitHub Pro" | Los gates corren pero no impiden un merge en rojo | Hacer el repo público o pasar a Pro, y activar checks requeridos |
+| D-14 | ✅ | ~~Repositorio privado sin GitHub Pro: protección de rama inactivable~~ | repo público y `gh api .../branches/master/protection` con checks requeridos `estructura`, `panel`, `suite` | cerrado: un merge en rojo ya no puede entrar | — |
 
 ## 2. Riesgos de producto
 
