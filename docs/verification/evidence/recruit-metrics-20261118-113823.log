@@ -1,0 +1,14 @@
+# sha256=fa373f6339342b6fe6a4387d75c8b6dfd1b6084c081a816ac43a46eac49695b6
+# catalogo de metricas 2026-11-18T11:38:23Z
+ok   familias=17 (minimo 14)
+ok   catalogo del §10 completo (17/17)
+ok   contadores cableados (saltos y leases vencidos > 0)
+ok   ratio efectivo=0.95 (>= 0,90 en regimen estable)
+ok   ratio al 50%: el siguiente tick baja (action=down)
+ok   tick_age < 90 s en 100 muestras
+ok   enroll_backlog=0 (<= 500)
+ok   claim_latency p95=3ms (<= 250)
+ok   cero errores 53300 en la ultima hora
+
+RESULTADO: PASS
+rc=0

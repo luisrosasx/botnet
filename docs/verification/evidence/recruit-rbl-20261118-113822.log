@@ -1,0 +1,6 @@
+# sha256=16b603082ef4a6d23a40ee37bce865445aafe6e8141b7e4491f660c6b551c219
+# sonda RBL 2026-11-18T11:38:22Z
+limpio:  zen.spamhaus.org
+limpio:  bl.spamcop.net
+origin=74.208.94.91 ptr=ubuntu. abuse=abuse@ubuntu listado=0
+rc=0

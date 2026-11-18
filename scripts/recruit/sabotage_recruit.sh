@@ -48,17 +48,16 @@ probar() {
 
 quiere() { [ -z "$ONLY" ] || [ "$ONLY" = "$1" ]; }
 
-# 1. Nodo fantasma: tres verificados sin aparato detras.
+# 1. Nodo fantasma: tres aparatos caen y sus verificados siguen contando.
+#    El CHECK `recruit_verified_requires_node` no deja poner node_id a NULL en
+#    estado verified, asi que el aparato se cae por estado, no por enlace.
 if quiere nodo_fantasma; then
-  q "CREATE TEMP TABLE IF NOT EXISTS sf1 AS SELECT 1" >/dev/null
-  q "CREATE TEMP TABLE IF NOT EXISTS sf1 AS SELECT 1" >/dev/null
-  ids=$(q "SELECT string_agg(candidate_id::text, ',') FROM (
-             SELECT candidate_id FROM recruit_candidates
+  ids=$(q "SELECT string_agg(node_id::text, ',') FROM (
+             SELECT DISTINCT node_id FROM recruit_candidates
               WHERE state='verified' AND node_id IS NOT NULL LIMIT 3) x")
-  q "UPDATE recruit_candidates SET node_id=NULL WHERE candidate_id IN ($ids)" >/dev/null
+  q "UPDATE nodes SET status='down' WHERE node_id IN ($ids)" >/dev/null
   probar nodo_fantasma nodos
-  q "UPDATE recruit_candidates c SET node_id=s.node_id FROM recruit_socks5_checks s
-      WHERE s.candidate_id=c.candidate_id AND c.candidate_id IN ($ids)" >/dev/null
+  q "UPDATE nodes SET status='enrolled' WHERE node_id IN ($ids)" >/dev/null
 fi
 
 # 2. Cuenta por intentos: cinco ganadores del mismo candidato no son cinco
