@@ -214,6 +214,7 @@ fi
 # ---------------------------------------------------------------------------
 if quiere gates; then
   gc=0
+  rojos=""
   # El smoke de metricas va primero: su SLO mira el latido y la compilacion de
   # go test se come la CPU del host, que daria un rojo de carga y no de codigo.
   for g in "scripts/recruit/metrics_smoke_recruit.sh" "scripts/check-blueprint.sh" \
@@ -221,9 +222,10 @@ if quiere gates; then
            "scripts/check-field-closure.sh --strict" "scripts/metrics_smoke.sh"; do
     if [ "$MODO" = "fixture" ]; then continue; fi
     # shellcheck disable=SC2086
-    bash $g >/dev/null 2>&1 || gc=$((gc+1))
+    bash $g >/tmp/recruit_gate_$$.log 2>&1 || { gc=$((gc+1)); rojos="$rojos $(basename "$g")"; }
   done
-  [ "$gc" -eq 0 ] && ok "gates: plan_anterior=0 rojos" || bad "gates: $gc gates del plan anterior en rojo"
+  rm -f /tmp/recruit_gate_$$.log
+  [ "$gc" -eq 0 ] && ok "gates: plan_anterior=0 rojos" || bad "gates: $gc en rojo:$rojos"
 fi
 
 # ---------------------------------------------------------------------------
