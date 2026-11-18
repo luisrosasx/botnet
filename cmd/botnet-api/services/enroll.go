@@ -67,7 +67,7 @@ func ticketHashHex(ticketWire string) string {
 // consumido en la misma fila) + secreto vivo + serial de cert en Redis.
 // La clave privada nunca aparece aqui: el body solo trae el CSR (A3-02)
 // y el secreto sale por esta unica respuesta (A3-06).
-func (e *EnrollDeps) Enroll(ctx context.Context, req proto.EnrollAPIRequest, token, ticketWire string) (proto.EnrollAPIResponse, error) {
+func (e *EnrollDeps) Enroll(ctx context.Context, req proto.EnrollAPIRequest, token, ticketWire, publicIP string) (proto.EnrollAPIResponse, error) {
 	tokenHash := sha256.Sum256([]byte(token))
 	tokenHex := hex.EncodeToString(tokenHash[:])
 
@@ -159,7 +159,7 @@ func (e *EnrollDeps) Enroll(ctx context.Context, req proto.EnrollAPIRequest, tok
 		if err != nil {
 			return proto.EnrollAPIResponse{}, err
 		}
-		err = e.Repo.InsertNode(ctx, nodeID, slug, tokenHex, ticketHash, req.Arch, req.Model, req.Firmware, macHash[:], consentAt)
+		err = e.Repo.InsertNode(ctx, nodeID, slug, tokenHex, ticketHash, req.Arch, req.Model, req.Firmware, macHash[:], consentAt, publicIP)
 		if err == nil {
 			break
 		}

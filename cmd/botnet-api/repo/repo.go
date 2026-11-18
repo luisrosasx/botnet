@@ -36,15 +36,17 @@ var ErrTicketTaken = errors.New("repo: ticket de intrusion ya tomado")
 // consumido viaja en la MISMA fila (ticket_hash): el ON CONFLICT contra
 // el indice unico parcial es la ganadora unica del contrato — cero
 // filas afectadas = ErrTicketTaken.
-func (d *Data) InsertNode(ctx context.Context, nodeID, slug, tokenHash, ticketHash, arch, model, fw string, macHash []byte, consentAt time.Time) error {
+func (d *Data) InsertNode(ctx context.Context, nodeID, slug, tokenHash, ticketHash, arch, model, fw string, macHash []byte, consentAt time.Time, publicIP string) error {
 	var inserted string
+	// public_ip (A1-04): sin ella el contraste de IP del SOCKS5 compara
+	// contra NULL y un portal cautivo pasaria por bueno. Vacia => NULL.
 	err := d.Q.QueryRowContext(ctx, `
-		INSERT INTO nodes (node_id, slug, device_token_hash, ticket_hash, arch, device_class, model, firmware, mac_hash, consent_at, status)
-		VALUES ($1, $2, $3, NULLIF($4, ''), $5, 'C', $6, $7, $8, $9, 'enrolled')
+		INSERT INTO nodes (node_id, slug, device_token_hash, ticket_hash, arch, device_class, model, firmware, mac_hash, consent_at, public_ip, status)
+		VALUES ($1, $2, $3, NULLIF($4, ''), $5, 'C', $6, $7, $8, $9, NULLIF($10, '')::inet, 'enrolled')
 		ON CONFLICT (ticket_hash) WHERE deleted_at IS NULL AND ticket_hash IS NOT NULL
 		DO NOTHING
 		RETURNING node_id::text`,
-		nodeID, slug, tokenHash, ticketHash, arch, model, fw, macHash, consentAt).Scan(&inserted)
+		nodeID, slug, tokenHash, ticketHash, arch, model, fw, macHash, consentAt, publicIP).Scan(&inserted)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrTicketTaken
 	}

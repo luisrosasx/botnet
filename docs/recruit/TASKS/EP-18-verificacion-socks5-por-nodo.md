@@ -64,7 +64,7 @@ created: 2026-11-17
 
 ### T-1805 — Contraste de IP de salida, deny-list ampliada y doble modo fixture/`--live`
 - **Épica:** EP-18
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `check-recruit.sh --only socks5` con sabotaje, `--fixture --json` y `TestDeniedConnect`; evidencia en `docs/verification/EP-18.md`
 - **Criterios de aceptación:**
   1. `psql -tAc "SELECT count(*) FROM recruit_socks5_checks s JOIN nodes n USING (node_id) WHERE s.ok AND s.ip_match AND s.egress_ip = n.public_ip AND s.egress_ip <> '74.208.94.91'"` = **20** de 20 filas ganadoras (hoy **0** — nadie escribe `egress_ip`) `[injerto: V1]`.
   2. Sabotaje del portal cautivo: `psql -c "UPDATE recruit_socks5_checks SET egress_ip='74.208.94.91', ip_match=false WHERE check_id=(SELECT max(check_id) FROM recruit_socks5_checks)"` hace que `bash scripts/check-recruit.sh --only socks5; echo exit=$?` devuelva **≥ 1**, y revertirlo (mismo UPDATE con el valor previo) lo devuelve a **0**.

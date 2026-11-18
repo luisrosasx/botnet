@@ -17,7 +17,15 @@ const DenyReason = "host_unreachable"
 
 // denyRanges: los cuatro rangos del mandato A3-X2 — 10/8, 172.16/12,
 // 192.168/16 y 100.64/10 (CGNAT).
-var denyRanges = mustCIDRs("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10")
+// denyRanges: los cuatro del mandato A3-X2 (10/8, 172.16/12, 192.168/16 y
+// 100.64/10 CGNAT) mas los que siempre mienten como destino publico: la
+// loopback y el enlace local (A1-08). Un CONNECT a 127.0.0.1 desde el
+// cliente acabaria en el gateway, no en el nodo.
+var denyRanges = mustCIDRs(
+	"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10",
+	"127.0.0.0/8",
+	"169.254.0.0/16",
+	"::1/128", "fe80::/10")
 
 func mustCIDRs(cidrs ...string) []*net.IPNet {
 	out := make([]*net.IPNet, 0, len(cidrs))

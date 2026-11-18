@@ -96,3 +96,22 @@ func (s *Store) UltimoIntento(ctx context.Context, ip string, port int) (Evidenc
 }
 
 var _ = time.Now
+
+// NodosEnrolados lista hasta n nodos enrolados (modo --live).
+func (s *Store) NodosEnrolados(ctx context.Context, n int) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT node_id::text FROM nodes WHERE status='enrolled' AND deleted_at IS NULL LIMIT $1`, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}

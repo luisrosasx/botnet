@@ -33,7 +33,7 @@ func enroll(d *Deps) fiber.Handler {
 			return jsonError(c, http.StatusBadRequest, err.Error())
 		}
 		ticket := c.Get("X-Intrusion-Ticket")
-		resp, err := svc.Enroll(c.Context(), req, token, ticket)
+		resp, err := svc.Enroll(c.Context(), req, token, ticket, c.IP())
 		if err != nil {
 			return mapEnrollError(c, err, resp.NodeID)
 		}
