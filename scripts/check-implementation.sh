@@ -82,7 +82,9 @@ if [ -d "$VDIR" ]; then
     [ -n "$epic" ] || continue
     while read -r t; do
       n_ac=$(awk -v id="$t" 'BEGIN{c=0;inb=0} /^### T-/{inb=($2==id)} inb&&/^- \*\*Criterios de aceptación:\*\*/{f=1;next} inb&&/^- \*\*/{f=0} f&&/^[[:space:]]+[0-9]+\./{c++} END{print c}' "$f")
-      n_pass=$(grep -h "^| $t \|" "$VDIR/$epic.md" 2>/dev/null | grep -c 'PASS')
+      # Patron anclado: con `grep "^| $t \|"` el `|` sin escapar casaba con
+      # cualquier linea y una task inexistente (T-9999) sumaba 26 PASS.
+      n_pass=$(grep -hE "^\| ${t} \| AC[0-9]+ \|" "$VDIR/$epic.md" 2>/dev/null | grep -c 'PASS')
       [ "$n_pass" -ge "$n_ac" ] || missing="$missing $t($n_pass/$n_ac)"
     done < <(grep -oE '^### (T-[0-9]{4})' "$f" | awk '{print $2}')
   done

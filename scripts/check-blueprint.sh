@@ -18,9 +18,11 @@ EPIC_COUNT=$(ls "$BP/EPICS"/*.md 2>/dev/null | wc -l | tr -d ' ')
 TASK_FILES=$(ls "$BP/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
 TASK_COUNT=$(grep -h '^### T-' "$BP/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
 
-[ "$EPIC_COUNT" -eq 14 ] && ok "14 epics" || bad "epics=$EPIC_COUNT (esperado 14)"
+# >= y no ==: el reclutamiento anade epicas y el gate no debe romperse al crecer.
+[ "$EPIC_COUNT" -ge 14 ] && ok "epics=$EPIC_COUNT (minimo 14)" || bad "epics=$EPIC_COUNT (esperado >=14)"
 [ "$TASK_FILES" -ge 14 ] && ok "ficheros de tasks=$TASK_FILES" || bad "ficheros de tasks=$TASK_FILES (esperado >=14)"
-if [ "$TASK_COUNT" -ge 80 ] && [ "$TASK_COUNT" -le 110 ]; then ok "total de tasks=$TASK_COUNT"; else bad "total de tasks=$TASK_COUNT (esperado 80-110)"; fi
+# Techo 200: da aire a las epicas nuevas sin dejar de detectar un volcado.
+if [ "$TASK_COUNT" -ge 80 ] && [ "$TASK_COUNT" -le 200 ]; then ok "total de tasks=$TASK_COUNT"; else bad "total de tasks=$TASK_COUNT (esperado 80-200)"; fi
 
 DUP=$(grep -h '^### T-' "$BP/TASKS"/*.md 2>/dev/null | grep -oE 'T-[0-9]{4}' | sort | uniq -d | tr '\n' ' ')
 [ -z "$DUP" ] && ok "IDs de task unicos" || bad "IDs duplicados: $DUP"

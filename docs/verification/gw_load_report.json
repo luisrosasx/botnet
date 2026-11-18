@@ -2,7 +2,7 @@
   "copied_bytes": 0,
   "gateways": 4,
   "nodes": 1000,
-  "p99_ms": 1.94,
+  "p99_ms": 2.55,
   "per_gw_nodes": 250,
   "redirects_pct": 4.67,
   "selections": 1049,
