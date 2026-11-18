@@ -66,3 +66,10 @@ barrido real (95 SYN-ACK), reglas de 503, pausa que corta el reparto, rollback s
 y arranque en frío. Pendiente de EP-19: `public_ip` AC2/AC4/AC5 y purge. Después EP-20 y EP-21.
 
 Gate en el VPS: FAIL por 2 (23/39 tasks, 0/20 nodos). Nada más se puede cerrar sin flota.
+
+## Estado de T-1904 (ultima de EP-19)
+
+- AC5 medido: `reprobe_guard.sh` en 0 violaciones y detecta el re-clutaje a 1 mes.
+- AC1 y AC3 cubiertos por código (`public_ip` en alta y heartbeat).
+- Falta el test `TestPurgePublicIP` (12 meses no anula / 14 sí) y el enrol real (AC2),
+  que depende de desplegar la API.
