@@ -152,3 +152,14 @@ Recordatorio de higiene: el gate necesita `DATABASE_URL` en el entorno y el scri
 Anadidos: `--list` enumera las 6 secciones y `--map` dice de donde sale cada una. El gate sigue
 exigiendo `DATABASE_URL` aunque sea para listar (se puede mover la asercion despues).
 Estado del objetivo sin cambios: un unico rojo, `tasks DONE=28/39`.
+
+## Punto de corte definitivo (2026-11-18)
+
+Gate `check-recruit.sh` en el VPS: **1 rojo** (`tasks DONE=28/39`), resto verde. `check-implementation.sh`
+en local pasó en su última ejecución; no se ha tocado nada que lo afecte desde entonces.
+
+Quedan 11 tasks: EP-20 (4) y EP-21 (5). Nada bloqueado por tecnica; el unico matiz abierto es que
+la verificacion de nodos usa fixture y el criterio pide trafico real por nodo.
+
+Para retomar: `docs/verification/EP-19.md` y este fichero. El VPS queda con orquestador, 3 workers,
+API y gateway activos; los servicios de test locales (Postgres 5433, Redis 16379) siguen arriba.
