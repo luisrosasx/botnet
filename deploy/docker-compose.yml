@@ -25,6 +25,10 @@ services:
       - shared_preload_libraries=pg_stat_statements
       - -c
       - pg_stat_statements.track=all
+      # 300 conexiones: el gate corre seis paquetes en paralelo y cada uno
+      # abre su pool; con el techo de 100 aparecian 53300 (EP-20).
+      - -c
+      - max_connections=300
     environment:
       POSTGRES_DB: botnet
       POSTGRES_USER: botnet

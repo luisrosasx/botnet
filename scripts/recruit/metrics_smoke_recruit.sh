@@ -116,10 +116,12 @@ fi
 
 if quiere slo; then
   # edad del latido: 100 muestras seguidas por debajo de 90 s.
+  # Se muestrea /healthz y no /metrics: una consulta por muestra en vez de
+  # dieciseis, y el planificador (pool de 2) no se queda sin conexion.
   altas=0
   i=0
   while [ "$i" -lt 100 ]; do
-    v=$(m | awk '/^botnet_recruit_orchestrator_tick_age_seconds/{print $2}')
+    v=$(curl -s --max-time 5 127.0.0.1:9110/healthz | awk -F= '/^tick_age_s=/{print $2}')
     [ "${v:-999}" -ge 90 ] && altas=$((altas+1))
     i=$((i+1))
     sleep 0.5
