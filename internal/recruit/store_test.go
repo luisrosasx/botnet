@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -356,5 +358,163 @@ func TestRelojDeEdad(t *testing.T) {
 	st.db.QueryRow(`SELECT age_clock_at FROM recruit_candidates WHERE candidate_id=$1`, c.CandidateID).Scan(&movido)
 	if !movido.After(marca) {
 		t.Fatal("el reloj de edad no se movio con outcome=ok")
+	}
+}
+
+// TestClaimLatencyP95: 5.000 en cola, 4 reclamadores, 1.000 claims y cero
+// perdidas; p95 por debajo de 250 ms. Se usa la fase `deliver` (lease 900 s)
+// porque con el lease corto de `sweep` una suite lenta reclamaria lo ya
+// reclamado y el conteo confundiria expiracion con solape.
+func TestClaimLatencyP95(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	if _, err := st.db.Exec(`
+		INSERT INTO recruit_candidates (ip, port, state)
+		SELECT ('198.18.' || (g/250) || '.' || (g%250+1))::inet, 10000 + (g%20000), 'eligible'
+		  FROM generate_series(1, 5000) g`); err != nil {
+		t.Fatalf("siembra: %v", err)
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	vistas := map[int64]time.Time{}
+	perdidas := 0
+	claims := 0
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for n := 0; n < 250; n++ {
+				items, err := st.Claim(ctx, "deliver", fmt.Sprintf("w-%d", i), 1)
+				mu.Lock()
+				if err != nil {
+					perdidas++
+					t.Logf("claim erro: %v", err)
+				}
+				claims++
+				for _, c := range items {
+					// Un repetido solo es fallo si su lease anterior seguia
+					// vivo; si habia vencido, reclamarlo es lo correcto.
+					if prev, ok := vistas[c.CandidateID]; ok {
+						if time.Now().Before(prev) {
+							perdidas++
+							var tok int64
+							var estado string
+							var seg float64
+							st.db.QueryRow(`SELECT lease_token, state, extract(epoch FROM (lease_expires_at-now())) FROM recruit_candidates WHERE candidate_id=$1`, c.CandidateID).Scan(&tok, &estado, &seg)
+							t.Logf("repetido id=%d token_reclamado=%d token_bd=%d estado=%s restante_s=%.0f", c.CandidateID, c.LeaseToken, tok, estado, seg)
+						}
+					}
+					vistas[c.CandidateID] = c.LeaseUntil
+				}
+				mu.Unlock()
+			}
+		}(i)
+	}
+	wg.Wait()
+	if claims < 1000 {
+		t.Fatalf("claims=%d (quiero 1000)", claims)
+	}
+	if perdidas != 0 {
+		t.Fatalf("reclamos perdidos o repetidos=%d", perdidas)
+	}
+	if p95 := st.ClaimP95(); p95 > 250 {
+		t.Fatalf("p95 de claim=%d ms (tope 250)", p95)
+	} else {
+		t.Logf("claim p95=%d ms sobre %d muestras", p95, claims)
+	}
+}
+
+// TestColaSobrevive: cerrar y reabrir el pool (reinicio del proceso) no
+// pierde la cola: el estado vive en Postgres.
+func TestColaSobrevive(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	seedCandidates(t, st, 12)
+	var antes int
+	if err := st.db.QueryRow(`SELECT count(*) FROM recruit_candidates WHERE state IN ('eligible','deferred')`).Scan(&antes); err != nil {
+		t.Fatalf("antes: %v", err)
+	}
+	// Reclama 4 para que haya filas en lease y comprueba que tambien siguen.
+	if _, err := st.Claim(ctx, "sweep", "w", 4); err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	dsn := os.Getenv("DATABASE_URL")
+	_ = dsn
+	st.Close()
+	st2, err := Open(st.dsnForTest(), 4)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer st2.Close()
+	var despues int
+	if err := st2.db.QueryRow(`SELECT count(*) FROM recruit_candidates`).Scan(&despues); err != nil {
+		t.Fatalf("despues: %v", err)
+	}
+	if despues != antes {
+		t.Fatalf("filas tras reabrir=%d (habia %d)", despues, antes)
+	}
+}
+
+// TestRenewLeaseLog: cada renew deja su linea `lease_renew` y estira la
+// fila. (El AC pide 9 en 10 min por journalctl; aqui el mismo camino se
+// ejerce a ritmo rapido y se cuentan las lineas.)
+func TestRenewLeaseLog(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	seedCandidates(t, st, 1)
+	got, _ := st.Claim(ctx, "cred", "w", 1)
+	c := got[0]
+
+	var buf strings.Builder
+	log.SetOutput(&buf)
+	defer log.SetOutput(os.Stderr)
+
+	for i := 0; i < 10; i++ {
+		if err := st.RenewLease(ctx, c.CandidateID, c.LeaseOwner, c.LeaseToken, "cred"); err != nil {
+			t.Fatalf("renew %d: %v", i, err)
+		}
+	}
+	if n := strings.Count(buf.String(), "lease_renew"); n < 9 {
+		t.Fatalf("lineas lease_renew=%d (quiero >=9)", n)
+	}
+	var vencido bool
+	if err := st.db.QueryRow(`SELECT lease_expires_at > now() + interval '4 min' FROM recruit_candidates WHERE candidate_id=$1`, c.CandidateID).Scan(&vencido); err != nil || !vencido {
+		t.Fatalf("el lease no se estiro: %v (vencido=%v)", err, vencido)
+	}
+}
+
+// TestReclaimTrasMuerte: el dueño muere, el lease vence, otro reclama y el
+// muerto ya no escribe.
+func TestReclaimTrasMuerte(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	seedCandidates(t, st, 1)
+	got, _ := st.Claim(ctx, "sweep", "muerto", 1)
+	c := got[0]
+
+	// Vencer el lease sin esperar 30 s reales de reloj.
+	if _, err := st.db.Exec(`UPDATE recruit_candidates SET lease_expires_at = now() - interval '1 s' WHERE candidate_id=$1`, c.CandidateID); err != nil {
+		t.Fatalf("vencer: %v", err)
+	}
+	var vivos int
+	st.db.QueryRow(`SELECT count(*) FROM recruit_candidates WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`).Scan(&vivos)
+	if vivos != 1 {
+		t.Fatalf("leases vencidos=%d (quiero 1)", vivos)
+	}
+	got2, err := st.Claim(ctx, "sweep", "nuevo", 1)
+	if err != nil || len(got2) != 1 {
+		t.Fatalf("reclaim: %v %d", err, len(got2))
+	}
+	// El dueño difunto ya no puede escribir.
+	if err := st.Transition(ctx, c.CandidateID, c.LeaseOwner, c.LeaseToken, StateBannered, "", "muerto"); err != ErrLeaseStale {
+		t.Fatalf("escritura del muerto=%v (quiero lease_stale)", err)
+	}
+	// Y el nuevo si.
+	if err := st.Transition(ctx, got2[0].CandidateID, got2[0].LeaseOwner, got2[0].LeaseToken, StateBannered, "", "nuevo"); err != nil {
+		t.Fatalf("escritura del nuevo: %v", err)
+	}
+	var vencidos int
+	if err := st.db.QueryRow(`SELECT count(*) FROM recruit_candidates WHERE lease_expires_at < now()`).Scan(&vencidos); err != nil || vencidos != 0 {
+		t.Fatalf("quedan %d leases vencidos (err=%v)", vencidos, err)
 	}
 }

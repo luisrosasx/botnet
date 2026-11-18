@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -13,7 +17,11 @@ import (
 // Store es el acceso a Postgres del servicio. Pool acotado: el motor es
 // compartido con el backend y el host con otros servicios (A2-01).
 type Store struct {
-	db *sql.DB
+	db  *sql.DB
+	dsn string
+
+	mu       sync.Mutex
+	claimLat []int64 // ms de las ultimas 1000 reclamaciones
 }
 
 // Open abre el pool. `pool` <= 0 usa 8, que es el tope del backend.
@@ -36,8 +44,11 @@ func Open(dsn string, pool int) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("recruit: ping: %w", err)
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, dsn: dsn}, nil
 }
+
+// dsnForTest devuelve el DSN con el que se abrio (reabrir en pruebas).
+func (s *Store) dsnForTest() string { return s.dsn }
 
 // Close cierra el pool.
 func (s *Store) Close() error { return s.db.Close() }
@@ -98,14 +109,14 @@ func (s *Store) SetPaused(ctx context.Context, paused bool) error {
 
 // Claimed es una fila reclamada por un worker.
 type Claimed struct {
-	CandidateID int64
-	IP          string
-	Port        int
-	Stage       string
-	Attempt     int
-	LeaseToken  int64
-	LeaseOwner  string
-	LeaseUntil  time.Time
+	CandidateID int64     `json:"candidate_id"`
+	IP          string    `json:"ip"`
+	Port        int       `json:"port"`
+	Stage       string    `json:"stage"`
+	Attempt     int       `json:"attempt"`
+	LeaseToken  int64     `json:"lease_token"`
+	LeaseOwner  string    `json:"lease_owner"`
+	LeaseUntil  time.Time `json:"lease_until"`
 }
 
 // LeaseDurationByPhase da el lease de cada fase: el barrido es corto y la
@@ -139,11 +150,17 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 		limit = 5
 	}
 	secs := int(LeaseDurationByPhase(stage).Seconds())
-	rows, err := s.db.QueryContext(ctx, `
-		WITH picked AS (
+	inicio := time.Now()
+	var rows *sql.Rows
+	var err error
+	// Reintento corto ante deadlock/serializacion: con varios reclamadores
+	// el motor puede abortar una transaccion y perder un reclamo.
+	for intento := 0; intento < 3; intento++ {
+		rows, err = s.db.QueryContext(ctx, `
+		WITH picked AS MATERIALIZED (
 		  SELECT candidate_id FROM recruit_candidates
-		   WHERE state IN ('eligible','deferred')
-		     AND next_attempt_at <= now()
+		   WHERE ((state IN ('eligible','deferred') AND next_attempt_at <= now())
+		           OR (lease_expires_at IS NOT NULL AND lease_expires_at < now()))
 		     AND (lease_expires_at IS NULL OR lease_expires_at < now())
 		   ORDER BY next_attempt_at
 		   LIMIT $1
@@ -153,16 +170,27 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 		   SET lease_owner = $2,
 		       lease_token = c.lease_token + 1,
 		       lease_expires_at = now() + make_interval(secs => $3),
-		       state = 'sweeping',
+		       -- un reclaim de una fase en vuelo conserva su estado: solo
+		       -- las filas de cola pasan a 'sweeping'.
+		       state = CASE WHEN c.state IN ('eligible','deferred') THEN 'sweeping' ELSE c.state END,
 		       updated_at = now()
 		  FROM picked p
 		 WHERE c.candidate_id = p.candidate_id
+		   -- re-chequeo del lease en el UPDATE: si otro se adelanto entre
+		   -- el SELECT y aqui, esta fila se salta en vez de duplicarse.
+		   AND (c.state IN ('eligible','deferred') OR c.lease_expires_at < now())
+		   AND (c.lease_expires_at IS NULL OR c.lease_expires_at < now())
 		RETURNING c.candidate_id, c.ip::text, c.port, c.lease_token,
 		          c.lease_owner, c.lease_expires_at`, limit, worker, secs)
+		if err == nil || !esReintentable(err) {
+			break
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	s.recordClaimLatency(time.Since(inicio))
 	var out []Claimed
 	for rows.Next() {
 		var c Claimed
@@ -267,7 +295,34 @@ func (s *Store) RenewLease(ctx context.Context, id int64, owner string, token in
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrLeaseStale
 	}
+	log.Printf("lease_renew candidate=%d owner=%s token=%d stage=%s", id, owner, token, stage)
 	return nil
+}
+
+// recordClaimLatency guarda la muestra y acota el anillo a 1000.
+func (s *Store) recordClaimLatency(d time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.claimLat = append(s.claimLat, d.Milliseconds())
+	if len(s.claimLat) > 1000 {
+		s.claimLat = s.claimLat[len(s.claimLat)-1000:]
+	}
+}
+
+// ClaimP95 devuelve el p95 de latencia de claim en ms (0 sin muestras).
+func (s *Store) ClaimP95() int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.claimLat) == 0 {
+		return 0
+	}
+	cp := append([]int64(nil), s.claimLat...)
+	sort.Slice(cp, func(i, j int) bool { return cp[i] < cp[j] })
+	idx := (len(cp) * 95) / 100
+	if idx >= len(cp) {
+		idx = len(cp) - 1
+	}
+	return cp[idx]
 }
 
 // ControlState lee pausa, clase y override manual (manual = -1 si no hay).
@@ -325,4 +380,22 @@ func (s *Store) rollWindow(ctx context.Context, class int) (int, error) {
 		return int(n), err
 	}
 	return int(n), nil
+}
+
+// esReintentable marca los abortos y cortes de transporte que valen un
+// reintento. El motor portable de Windows suelta wsarecv bajo carga y un
+// claim se puede repetir sin efecto doble (SKIP LOCKED).
+func esReintentable(err error) bool {
+	if err == nil {
+		return false
+	}
+	txt := err.Error()
+	for _, frag := range []string{"deadlock detected", "could not serialize",
+		"SQLSTATE 40001", "SQLSTATE 40P01", "wsarecv", "connection reset",
+		"broken pipe", "unexpected EOF", "i/o timeout"} {
+		if strings.Contains(txt, frag) {
+			return true
+		}
+	}
+	return false
 }

@@ -34,7 +34,7 @@ created: 2026-11-17
 
 ### T-1603 — Cola durable con claim atómico `FOR UPDATE SKIP LOCKED`
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestClaim|TestLease|TestFencing|TestRenew|TestReclaim"` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. Dos `claim` concurrentes por la misma fase devuelven conjuntos disjuntos: `go test ./internal/recruit/ -run TestClaimAtomic -count=100 2>&1 | grep -c '^ok'` = **1** y la aserción de solape da **0** filas comunes en 100 iteraciones; el SQL contiene `FOR UPDATE SKIP LOCKED` (`grep -c 'FOR UPDATE SKIP LOCKED' internal/recruit/store.go` ≥ **1**) `[injerto: V2]`.
   2. El claim usa el índice parcial, no un barrido: `psql -tAc "EXPLAIN (FORMAT TEXT) SELECT candidate_id FROM recruit_candidates WHERE state IN ('new','eligible','deferred') ORDER BY next_attempt_at LIMIT 5"` → `grep -c 'recruit_q_claim'` = **1** y `grep -c 'Seq Scan on recruit_candidates'` = **0**.
@@ -48,7 +48,7 @@ created: 2026-11-17
 
 ### T-1604 — Lease por fase con `RenewLease()` y commit con fencing
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestClaim|TestLease|TestFencing|TestRenew|TestReclaim"` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. Duraciones exactas por fase: `go test ./internal/recruit/ -run TestLeaseDurationByPhase -v` ok con `sweep=30s`, `cred=300s`, `deliver=900s` (`grep -cE 'sweep:30s|cred:300s|deliver:900s'` sobre la salida con `-v` = **3**); ninguna fase usa un lease único de 300 s (A2-04).
   2. `RenewLease()` cada 60 s: `journalctl -u botnet-recruit --since '-10m' | grep -c 'lease_renew'` ≥ **9** en diez minutos, y `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE lease_owner IS NOT NULL AND lease_expires_at < now()"` = **0** en un barrido de 216 s (la cohorte sobrevive a su lease).

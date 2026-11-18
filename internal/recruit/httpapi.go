@@ -79,6 +79,8 @@ func (a *API) metrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "# TYPE botnet_recruit_rate_class gauge\n")
 	fmt.Fprintf(w, "botnet_recruit_rate_class %d\n", h.RateClass)
 	fmt.Fprintf(w, "botnet_recruit_paused %d\n", boolToInt(h.Paused))
+	fmt.Fprintf(w, "# TYPE botnet_recruit_claim_latency_ms gauge\n")
+	fmt.Fprintf(w, "botnet_recruit_claim_latency_ms %d\n", a.Store.ClaimP95())
 }
 
 func boolToInt(b bool) int {
