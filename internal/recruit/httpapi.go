@@ -54,6 +54,10 @@ func (a *API) healthz(w http.ResponseWriter, r *http.Request) {
 		code, status = http.StatusServiceUnavailable, "stale"
 	case h.Paused:
 		status = "paused"
+	case h.RateClass == 0:
+		// Ritmo cero sin pausa es averia, no intencion: el servicio no
+		// promueve nada y hay que verlo rojo (T-1905 AC3).
+		code, status = http.StatusServiceUnavailable, "rate_zero"
 	}
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(code)

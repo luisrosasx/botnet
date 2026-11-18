@@ -31,3 +31,12 @@ Escrito al acercarse el límite de contexto. Lo que hay y por dónde seguir.
 - Con `Restart=always` la unidad fallida queda `activating`, no `failed` (desvío ya anotado).
 - `systemctl show -p CPUQuota` no devuelve valor en este systemd; el techo se afirma por la unidad.
 - Los workers no están arrancados todavía.
+
+## Actualización (healthz y workers)
+
+- Workers `sweep`/`banner`/`cred`: **enabled y active** las tres; `TERM` revive (NRestarts=1) y no
+  dejan `masscan`. Hizo falta añadir `--loop` al probe (reclama y duerme).
+- `/healthz`: 200 con latido fresco, **503** con latido de 2 min, **503** con ritmo cero y
+  `paused=false`, **200** en pausa. Regla `rate_zero` nueva en `httpapi.go`.
+- Siguiente: barrido real de /24 (T-1901 AC5), `public_ip` en heartbeat (T-1904), EP-20 (gate) y
+  EP-21 (20 nodos).
