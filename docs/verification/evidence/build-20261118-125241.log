@@ -1,0 +1,16 @@
+BOT.NET — compilacion completa (20261118-125241)
+host=Linux go=go1.27.0
+GOTMPDIR=/root/go-tmp  GOFLAGS=-mod=mod -p=2
+
+=== entorno ===
+ok   go build (suelo)
+
+=== check-implementation ===
+ok   preflight: 0 procesos, 0 consolas y ? MB libres
+ok   redis de test escuchando en 16379
+ok   tasks DONE=102/102
+ok   toda task bloqueada declara MOTIVO
+ok   verificación 1:1 PASS por AC en las 14 epics
+ok   sin filas FAIL
+ok   go build
+ok   go vet
