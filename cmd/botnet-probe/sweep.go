@@ -61,7 +61,7 @@ func cfgDespliegue(clave string) string {
 // comandoMasscan arma el argv. `pps` es el ritmo de la ventana; `ips` el
 // alcance; `ports` la lista. Con la interfaz en /32 (VPS de proveedor) hace
 // falta el MAC del router: sin el, masscan no sabe a quien entregar el SYN.
-func comandoMasscan(pps int, sourceIP, adapter, ips, ports string) []string {
+func comandoMasscan(pps int, sourceIP, adapter, ips, ports, salida string) []string {
 	argv := []string{
 		"nice", "-n", "10",
 		"masscan",
@@ -71,13 +71,19 @@ func comandoMasscan(pps int, sourceIP, adapter, ips, ports string) []string {
 	if mac := cfgDespliegue("RECRUIT_ROUTER_MAC"); mac != "" {
 		argv = append(argv, "--router-mac", mac)
 	}
-	return append(argv,
+	argv = append(argv,
 		"--rate", strconv.Itoa(pps),
 		"--min-rate", strconv.Itoa(pps),
 		"-p", ports,
-		"--output-format", "json",
-		ips,
 	)
+	// Escribir a fichero, no a stdout: masscan 1.3.2 no suelta el JSON si la
+	// salida es un pipe.
+	if salida != "" {
+		argv = append(argv, "-oJ", salida)
+	} else {
+		argv = append(argv, "--output-format", "json")
+	}
+	return append(argv, ips)
 }
 
 // cohorte parte un total de SYN en tandas de `pps*segundos`. Devuelve el
@@ -112,7 +118,7 @@ func ejecutarSweep(ctx context.Context, rutaJSON string, limit int, dryRun bool,
 	}
 	total := 325100 // /24 x 5 puertos: el alcance del runbook
 	tamCohorte, nCohortes := cohorte(total, pps, segundos)
-	argv := comandoMasscan(pps, cfgDespliegue("RECRUIT_SOURCE_IP"), cfgDespliegue("RECRUIT_ADAPTER"), c.Alcance, c.Puertos)
+	argv := comandoMasscan(pps, cfgDespliegue("RECRUIT_SOURCE_IP"), cfgDespliegue("RECRUIT_ADAPTER"), c.Alcance, c.Puertos, "")
 
 	if dryRun {
 		fmt.Printf("masscan: %s\n", strings.Join(argv, " "))
@@ -207,13 +213,23 @@ func ejecutarSweepLive(ctx context.Context, limit, segundos int) error {
 	if ritmo < 1 {
 		ritmo = 1
 	}
-	argv := comandoMasscan(ritmo, cfgDespliegue("RECRUIT_SOURCE_IP"), cfgDespliegue("RECRUIT_ADAPTER"), c.Alcance, c.Puertos)
+	tmp, err := os.CreateTemp("", "masscan-*.json")
+	if err != nil {
+		return err
+	}
+	salida := tmp.Name()
+	tmp.Close()
+	defer os.Remove(salida)
+	argv := comandoMasscan(ritmo, cfgDespliegue("RECRUIT_SOURCE_IP"), cfgDespliegue("RECRUIT_ADAPTER"), c.Alcance, c.Puertos, salida)
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	var errb strings.Builder
 	cmd.Stderr = &errb
-	out, err := cmd.Output()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("masscan: %w: %s", err, strings.TrimSpace(errb.String()))
+	}
+	out, err := os.ReadFile(salida)
+	if err != nil {
+		return fmt.Errorf("masscan: leer salida: %w", err)
 	}
 	cands, err := normCandidatos(out)
 	if err != nil {
