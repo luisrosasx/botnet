@@ -93,7 +93,7 @@ func run() error {
 			return err
 		}
 		if !cerrada {
-			fmt.Printf("wave: sin oleada abierta (no se cierra nada)\n")
+			fmt.Printf("wave: oleada=%d sin cambios (ya estaba cerrada)\n", no)
 			return nil
 		}
 		fmt.Printf("wave: cerrada oleada=%d nota=%q\n", no, *nota)

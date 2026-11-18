@@ -48,25 +48,31 @@ func (s *Store) AbrirOleada(ctx context.Context) (int, error) {
 // cerro algo.
 func (s *Store) CerrarOleada(ctx context.Context, nota string) (no int, cerrada bool, err error) {
 	// La nota es la identidad de la oleada: cerrar dos veces con la misma
-	// nota no crea una segunda fila (T-2101 AC1, idempotencia).
+	// nota no crea una segunda fila (T-2101 AC1, idempotencia). Si ya estaba
+	// cerrada, se refrescan sus cifras y se dice que no se cerro nada nuevo.
+	yaCerrada := false
 	if nota != "" {
 		var ya int
 		err = s.db.QueryRowContext(ctx, `
 			SELECT wave_no FROM recruit_waves
 			 WHERE note = $1 AND state = 'cerrada' LIMIT 1`, nota).Scan(&ya)
-		if err == nil {
-			return ya, false, nil
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
+		switch {
+		case err == nil:
+			no, yaCerrada = ya, true
+		case errors.Is(err, sql.ErrNoRows):
+			err = nil
+		default:
 			return 0, false, err
 		}
 	}
-	no, err = s.oleadaAbierta(ctx)
-	if err == nil && no == 0 {
-		no, err = s.AbrirOleada(ctx)
-	}
-	if err != nil || no == 0 {
-		return no, false, err
+	if !yaCerrada {
+		no, err = s.oleadaAbierta(ctx)
+		if err == nil && no == 0 {
+			no, err = s.AbrirOleada(ctx)
+		}
+		if err != nil || no == 0 {
+			return no, false, err
+		}
 	}
 	var promoted, enrolled, verified int
 	// promoted: candidatos que han llegado al final del embudo.
@@ -90,16 +96,16 @@ func (s *Store) CerrarOleada(ctx context.Context, nota string) (no int, cerrada 
 	}
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE recruit_waves
-		   SET state = 'cerrada', closed_at = now(),
+		   SET state = 'cerrada', closed_at = COALESCE(closed_at, now()),
 		       promoted = $2, enrolled = $3, verified = $4, note = $5
-		 WHERE wave_no = $1 AND state = 'abierta'`, no, promoted, enrolled, verified, nota)
+		 WHERE wave_no = $1`, no, promoted, enrolled, verified, nota)
 	if err != nil {
 		return no, false, err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return no, false, nil
 	}
-	return no, true, nil
+	return no, !yaCerrada, nil
 }
 
 // Oleadas devuelve todas las oleadas con sus cifras (para el estado y la
