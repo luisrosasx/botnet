@@ -1,0 +1,2 @@
+{"candidate_id": 1, "node_id": "0f4f1a1e-0000-4000-8000-000000000001", "target": "http://example.com", "http_status": 200, "bytes_in": 512, "latency_ms": 120, "ip_match": true, "ok": true}
+{"candidate_id": 2, "node_id": "0f4f1a1e-0000-4000-8000-000000000002", "target": "http://example.com", "http_status": 200, "bytes_in": 0, "latency_ms": 120, "ip_match": true, "ok": false}

@@ -79,7 +79,7 @@ created: 2026-11-17
 
 ### T-1706 — Modo fixture NDJSON determinista en CI con lazo congelado
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./cmd/botnet-probe/ ./cmd/botnet-strike/` y determinismo de `--emit-sql`; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `ls testdata/recruit/ | grep -cE 'masscan\.ndjson|zgrab2\.jsonl|exclusions\.csv|socks5_checks\.jsonl'` = **4** y `wc -l < testdata/recruit/masscan.ndjson` ≥ **50** filas de NDJSON válido (0 líneas vacías, `grep -c '^{'` = total de líneas).
   2. Determinismo: dos ejecuciones de `./bin/botnet-probe --sweep-json testdata/recruit/masscan.ndjson --emit-sql | sort` producen salidas idénticas (`diff <(run1) <(run2) | grep -c '^[<>]'` = **0**) sobre el mismo estado inicial de BD.
