@@ -66,7 +66,7 @@ created: 2026-11-17
 
 ### T-1905 — `/healthz` con reglas de 503 y rollback por escalones
 - **Épica:** EP-19
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: reglas de 503, pausa, rollback y arranque en frio en el VPS; evidencia en docs/verification/EP-19.md
 - **Criterios de aceptación:**
   1. En régimen normal `curl -s 127.0.0.1:9110/healthz` sale **0** con las 5 claves (`grep -cE '(status|db|masscan|tick_age_s|rate_class)='` = **5**) y `curl -o /dev/null -w '%{http_code}'` = **200**; el puerto viene del env: `grep -c 'RECRUIT_METRICS_ADDR=127.0.0.1:9110' /etc/botnet-recruit/env` = **1** y `ss -ltn | grep -cE ':9108|:9109'` = **0** (sin colisión con las propuestas, A2-17).
   2. Latido caducado ⇒ **503**: `psql -c "UPDATE recruit_control SET tick_at = now() - interval '2 min'"` y, a los 30 s, `curl -o /dev/null -w '%{http_code}' 127.0.0.1:9110/healthz` = **503** (hoy 200); con `tick_at` fresco vuelve a **200** (2/2).
