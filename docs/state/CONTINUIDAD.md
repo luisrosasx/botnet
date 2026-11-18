@@ -40,3 +40,10 @@ Escrito al acercarse el límite de contexto. Lo que hay y por dónde seguir.
   `paused=false`, **200** en pausa. Regla `rate_zero` nueva en `httpapi.go`.
 - Siguiente: barrido real de /24 (T-1901 AC5), `public_ip` en heartbeat (T-1904), EP-20 (gate) y
   EP-21 (20 nodos).
+
+## Última actualización
+
+- Barrido real OK: 95 SYN-ACK y 95 candidatos (`--adapter ens6`).
+- `public_ip` se escribe en el alta y en el primer heartbeat (`MarkLive` + `c.IP()`).
+- Pendiente inmediato: desplegar la API al VPS para que el heartbeat escriba la IP,
+  T-1904 AC2/AC4/AC5, EP-20 (gate con sabotajes) y EP-21 (20 nodos).

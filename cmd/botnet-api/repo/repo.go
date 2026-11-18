@@ -171,12 +171,15 @@ func (d *Data) NodeStatus(ctx context.Context, nodeID string) (string, error) {
 
 // MarkLive: el heartbeat convierte enrolled/down en live y estampa
 // last_seen_at (la presencia caliente ademas deja node:{id}:live en Redis).
-func (d *Data) MarkLive(ctx context.Context, nodeID string) error {
+func (d *Data) MarkLive(ctx context.Context, nodeID, publicIP string) error {
+	// public_ip (A1-04): el primer latido es la segunda oportunidad de
+	// rellenarla si el alta no la trajo. Vacio no pisa lo conocido.
 	_, err := d.Q.ExecContext(ctx, `
 		UPDATE nodes
 		   SET last_seen_at = now(),
+		       public_ip = COALESCE(NULLIF($2, '')::inet, public_ip),
 		       status = CASE WHEN status IN ('enrolled','down') THEN 'live' ELSE status END
-		 WHERE node_id = $1::uuid`, nodeID)
+		 WHERE node_id = $1::uuid`, nodeID, publicIP)
 	if err != nil {
 		return fmt.Errorf("repo: mark live: %w", err)
 	}

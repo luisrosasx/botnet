@@ -79,7 +79,7 @@ func heartbeat(d *Deps) fiber.Handler {
 			c.Set("Content-Type", "application/octet-stream")
 			return c.Status(http.StatusGone).Send(buf)
 		}
-		if err := d.Repo.MarkLive(c.Context(), nodeID); err != nil {
+		if err := d.Repo.MarkLive(c.Context(), nodeID, c.IP()); err != nil {
 			return jsonError(c, http.StatusInternalServerError, err.Error())
 		}
 		// Historico del panel (T-1202): la fila del latido y el
