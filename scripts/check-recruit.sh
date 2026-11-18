@@ -9,7 +9,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=scripts/env.sh
 source scripts/env.sh >/dev/null 2>&1 || true
-: "${DATABASE_URL:?DATABASE_URL requerido}"
 case "${1:-}" in
   --list) printf 'oleadas
 tareas
@@ -28,6 +27,7 @@ servicio=healthz9110
 esac
 
 
+: "${DATABASE_URL:?DATABASE_URL requerido}"
 ONLY=""
 [ "${1:-}" = "--only" ] && ONLY="${2:-}"
 FAIL=0
