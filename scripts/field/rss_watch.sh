@@ -151,10 +151,10 @@ command -v "$PS_BIN" >/dev/null 2>&1 || {
 }
 if [ "$IS_NUMERIC_PID" = 1 ]; then
   RAW=$("$PS_BIN" -o rss= -p "$SEL" 2>/dev/null | LC_ALL=C awk 'BEGIN{ s = 0 } NF { s += $1 } END { print s + 0 }')
-  NPROC=$("$PS_BIN" -p "$SEL" 2>/dev/null | LC_ALL=C awk 'END { print NR > 1 ? NR - 1 : 0 }')
+  NPROC=$("$PS_BIN" -p "$SEL" 2>/dev/null | LC_ALL=C awk 'END { print (NR > 1 ? NR - 1 : 0) }')
 else
   RAW=$("$PS_BIN" -o rss= -C "$SEL" 2>/dev/null | LC_ALL=C awk 'BEGIN{ s = 0 } NF { s += $1 } END { print s + 0 }')
-  NPROC=$("$PS_BIN" -C "$SEL" 2>/dev/null | LC_ALL=C awk 'END { print NR > 1 ? NR - 1 : 0 }')
+  NPROC=$("$PS_BIN" -C "$SEL" 2>/dev/null | LC_ALL=C awk 'END { print (NR > 1 ? NR - 1 : 0) }')
 fi
 if [ -z "${RAW:-}" ] || [ "$RAW" = "0" ] || [ "${NPROC:-0}" = "0" ]; then
   echo "rss_watch: proceso $SEL sin memoria leible ($PS_BIN)" >&2
