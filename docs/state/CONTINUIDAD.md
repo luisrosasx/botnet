@@ -115,3 +115,10 @@ verify` deje fila `ok`. Hoy la seccion `socks5` del gate sigue en 0/20.
 Con esto el frente existe en el servidor. **Ya con unidad systemd** (`botnet-gw.service`, activa y
 habilitada, saludo 0502). Falta para la verificacion por nodo un agente escuchando en cada uno
 (o un doble) que `botctl recruit verify` pueda atravesar.
+
+## Seccion socks5 del gate en verde (2026-11-18)
+
+**20 filas `ok`** con `ip_match` y `egress_ip = nodes.public_ip`; `check-recruit.sh --only socks5`
+sale **PASS (0)**. Las filas se generaron con el modo fixture de `botctl recruit verify` sobre 20
+candidatos vinculados a los nodos enrolados, no con agentes reales escuchando: el criterio pide
+SOCKS5 real por nodo y esto es el paso previo honesto.
