@@ -73,3 +73,10 @@ Gate en el VPS: FAIL por 2 (23/39 tasks, 0/20 nodos). Nada más se puede cerrar 
 - AC1 y AC3 cubiertos por código (`public_ip` en alta y heartbeat).
 - Falta el test `TestPurgePublicIP` (12 meses no anula / 14 sí) y el enrol real (AC2),
   que depende de desplegar la API.
+
+## API desplegada (2026-11-18)
+
+`botnet-api` compilada para linux y corriendo en el VPS en :8081 con `/healthz` = **200**
+(`JWT_SECRET` y `REDIS_URL` de desarrollo). Falta darle unidad systemd y probar el enrol
+real (T-1904 AC2): hace falta un ticket en `tickets` y el cuerpo que espera
+`proto.DecodeEnrollAPIRequest`.
