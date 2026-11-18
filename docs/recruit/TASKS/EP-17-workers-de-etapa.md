@@ -49,7 +49,7 @@ created: 2026-11-17
 
 ### T-1704 — Credencial con legba: `cred_protocol`, `cred_ref`, `burned` y tope por destino
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `--stage cred` sobre fixture y `go test ./internal/recruit/ -run TestEsLockout`; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `botnet-strike legba-parse --banner=F < testdata/intrusion/legba_hit.txt` deja `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE state='assessed' AND cred_protocol IS NULL"` = **0** y `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE state='assessed' AND cred_ref IS NULL"` = **0**, con `cred_protocol IN ('http','ssh','telnet','ftp')` en el **100 %** de las filas (A1-02, dominio del §6).
   2. El parsing no se reimplementa: `go list -deps ./cmd/botnet-strike | grep -c 'botnet/internal/intrusion'` ≥ **1** y `go test ./internal/intrusion/ -run TestLegba 2>&1 | grep -c '^ok'` = **1** (la envoltura por candidato mantiene verdes los tests del suelo).

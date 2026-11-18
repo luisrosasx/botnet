@@ -44,7 +44,11 @@ func run() error {
 		cohS    = flagInt("cohort-seconds", defaultCohortSeconds)
 		stageB  = flagStr("stage", "")
 		bannerJ = flagStr("banner-json", "")
+		credJ   = flagStr("cred-json", "")
 	)
+	if stageB == "cred" {
+		return ejecutarCred(context.Background(), credJ, dryRun)
+	}
 	if stageB == "banner" {
 		return ejecutarBanner(context.Background(), bannerJ, dryRun)
 	}

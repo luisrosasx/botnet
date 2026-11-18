@@ -237,3 +237,17 @@ func (s *Store) MetricasDesdeBD(ctx context.Context) (Metricas, error) {
 	m.EffectiveRatio = r
 	return m, nil
 }
+
+// VentanaLockout es el margen en el que tres fallos seguidos se leen como
+// bloqueo del router y no como mala suerte.
+const VentanaLockout = 40 * time.Second
+
+// EsLockout dice si tres fallos consecutivos caben en la ventana.
+func EsLockout(tiempos []time.Time) bool {
+	if len(tiempos) < 3 {
+		return false
+	}
+	ult := tiempos[len(tiempos)-1]
+	prim := tiempos[len(tiempos)-3]
+	return ult.Sub(prim) <= VentanaLockout
+}

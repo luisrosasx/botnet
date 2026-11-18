@@ -568,3 +568,99 @@ func (s *Store) CandidatoPorIP(ctx context.Context, ip string, port int) (int64,
 		SELECT candidate_id FROM recruit_candidates WHERE ip = $1::inet AND port = $2`, ip, port).Scan(&id)
 	return id, err
 }
+
+// MarcarCredencial guarda con qué protocolo se entro y con que referencia.
+// El secreto no se persiste: solo el indice de la entrada del diccionario.
+func (s *Store) MarcarCredencial(ctx context.Context, id int64, protocolo string, idx int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET cred_protocol = $2, cred_ref = 'dict:' || $3::int::text, state = 'assessed', updated_at = now()
+		 WHERE candidate_id = $1`, id, protocolo, idx)
+	return err
+}
+
+// MarcarBurned quema el candidato por lockout y lo deja con su evento.
+func (s *Store) MarcarBurned(ctx context.Context, id int64, actor string) error {
+	var desde string
+	if err := s.db.QueryRowContext(ctx, `SELECT state FROM recruit_candidates WHERE candidate_id=$1`, id).Scan(&desde); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state='burned', fail_reason='burned', lease_owner=NULL, lease_expires_at=NULL, updated_at=now()
+		 WHERE candidate_id = $1`, id); err != nil {
+		return err
+	}
+	var seq int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(max(seq),0)+1 FROM recruit_candidate_events WHERE candidate_id=$1`, id).Scan(&seq); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidate_events (candidate_id, seq, from_state, to_state, reason, actor)
+		VALUES ($1,$2,$3,'burned','burned',$4)`, id, seq, desde, actor)
+	return err
+}
+
+// DescartarSinCred mata el candidato sin credencial valida.
+func (s *Store) DescartarSinCred(ctx context.Context, id int64, actor string) error {
+	var desde string
+	if err := s.db.QueryRowContext(ctx, `SELECT state FROM recruit_candidates WHERE candidate_id=$1`, id).Scan(&desde); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state='discarded', fail_reason='no_cred', lease_owner=NULL, lease_expires_at=NULL, updated_at=now()
+		 WHERE candidate_id = $1`, id); err != nil {
+		return err
+	}
+	var seq int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(max(seq),0)+1 FROM recruit_candidate_events WHERE candidate_id=$1`, id).Scan(&seq); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidate_events (candidate_id, seq, from_state, to_state, reason, actor)
+		VALUES ($1,$2,$3,'discarded','no_cred',$4)`, id, seq, desde, actor)
+	return err
+}
+
+// SinCredencial lista los candidatos en vuelo sin credencial probada.
+func (s *Store) SinCredencial(ctx context.Context) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT candidate_id FROM recruit_candidates
+		 WHERE state IN ('bannered','sweeping') AND cred_protocol IS NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// FijarIntentos deja el contador de intentos en al menos n.
+func (s *Store) FijarIntentos(ctx context.Context, id int64, n int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates SET stage_attempts = GREATEST(stage_attempts, $2) WHERE candidate_id=$1`, id, n)
+	return err
+}
+
+// MarcarCredFallida deja el candidato en `assessed` tras tres fallos
+// repartidos (no es lockout, el router sigue sano) y conserva los intentos.
+func (s *Store) MarcarCredFallida(ctx context.Context, id int64, protocolo string, idx int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state = CASE WHEN state='bannered' THEN 'assessed' ELSE state END,
+		       cred_protocol = COALESCE(NULLIF($2,''), cred_protocol),
+		       cred_ref = COALESCE(CASE WHEN $3 > 0 THEN 'dict:' || $3::int::text END, cred_ref),
+		       stage_attempts = GREATEST(stage_attempts, 3), updated_at = now()
+		 WHERE candidate_id = $1`, id, protocolo, idx)
+	return err
+}

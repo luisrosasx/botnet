@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 )
 
 // Fixture de ventanas del blueprint (testdata/recruit/planner_windows.json).
@@ -132,5 +133,21 @@ func TestTickEscribeYRespetaPausa(t *testing.T) {
 	}
 	if d.Action != "paused" || d.RateClass != 0 || d.Reason == "" {
 		t.Fatalf("pausa: %s clase=%d motivo=%q", d.Action, d.RateClass, d.Reason)
+	}
+}
+
+// TestEsLockout: tres fallos en 40 s son lockout; repartidos, no.
+func TestEsLockout(t *testing.T) {
+	base := time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC)
+	seguidos := []time.Time{base, base.Add(20 * time.Second), base.Add(40 * time.Second)}
+	if !EsLockout(seguidos) {
+		t.Fatal("tres fallos en 40 s deben ser lockout")
+	}
+	repartidos := []time.Time{base, base.Add(60 * time.Second), base.Add(120 * time.Second)}
+	if EsLockout(repartidos) {
+		t.Fatal("tres fallos en 120 s no deben ser lockout")
+	}
+	if EsLockout(seguidos[:2]) {
+		t.Fatal("con dos fallos no hay lockout")
 	}
 }
