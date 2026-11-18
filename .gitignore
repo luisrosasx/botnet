@@ -1,5 +1,6 @@
-# binarios de la matriz de build
+# binarios de la matriz de build y del build local
 /dist/
+/bin/
 /*.exe
 # estado del harness (cambia en cada sesión)
 /.ultracode/

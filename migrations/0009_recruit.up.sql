@@ -12,9 +12,20 @@ CREATE TABLE IF NOT EXISTS recruit_candidates (
   ip               inet NOT NULL,
   port             smallint NOT NULL CHECK (port BETWEEN 1 AND 65535),
   state            text NOT NULL DEFAULT 'new' CHECK (state IN (
-                     'new','excluded','eligible','sweeping','bannered','assessed',
-                     'staging','enrolling','enrolled','verified','deferred',
-                     'discarded','burned','rolled_back')),
+                     'new',
+                     'excluded',
+                     'eligible',
+                     'sweeping',
+                     'bannered',
+                     'assessed',
+                     'staging',
+                     'enrolling',
+                     'enrolled',
+                     'verified',
+                     'deferred',
+                     'discarded',
+                     'burned',
+                     'rolled_back')),
   source           text NOT NULL DEFAULT 'discovered'
                      CHECK (source IN ('discovered','masscan','shodan','manual')),
   -- Sin FK a `discovered`: esa tabla no tiene clave primaria (solo UNIQUE

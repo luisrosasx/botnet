@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-1601 — Proceso y API del orquestador con `/healthz` por latido
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. `go build -o bin/botnet-recruit ./cmd/botnet-recruit && ./bin/botnet-recruit --help` sale **0** y lista las 6 banderas: `--config`, `--db-pool`, `--roll-window`, `--once`, `--explain-tick`, `--sweep-json` (`grep -cE '^ +(--)?(config|db-pool|roll-window|once|explain-tick|sweep-json)\b'` = **6**).
   2. `curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:9110/healthz` = **200** con el latido fresco y **503** tras `psql -c "UPDATE recruit_control SET tick_at = now() - interval '2 min'"` (hoy el servicio no existe; el criterio A2-03 exige el 503); `curl -s 127.0.0.1:9110/healthz` imprime las 5 claves `status`, `db`, `masscan`, `tick_age_s`, `rate_class` (`grep -cE '(status|db|masscan|tick_age_s|rate_class)='` = **5**).
@@ -20,7 +20,7 @@ created: 2026-11-17
 
 ### T-1602 — Máquina de estados de 14 estados con auditoría por transición
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. `go test ./internal/recruit/ -run TestStateTable` ok y la tabla declara los **14** estados del blueprint §5 (`grep -cE "'(new|excluded|eligible|sweeping|bannered|assessed|staging|enrolling|enrolled|verified|deferred|discarded|burned|rolled_back)'" migrations/0009_recruit.up.sql` ≥ **14**); cada uno de los **8** caminos de la tabla §5 tiene su test de paso: `go test ./internal/recruit/ -run TestTransition -v | grep -c -- '^--- PASS'` ≥ **8**.
   2. Cada transición escribe exactamente una fila en `recruit_candidate_events`: `psql -tAc "SELECT count(*) FROM recruit_candidate_events WHERE candidate_id=$1 AND seq=(SELECT max(seq) FROM recruit_candidate_events WHERE candidate_id=$1) AND from_state='new' AND to_state='eligible'"` = **1**, con `actor` no vacío (`psql -tAc "SELECT count(*) FROM recruit_candidate_events WHERE actor='' "` = **0**) y `reason` presente en los **4** estados terminales del embudo.

