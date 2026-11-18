@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-1501 — Migración única 0009 bajo `pg_advisory_lock(6009)` con timeouts
 - **Épica:** EP-15
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `DATABASE_URL=... go test ./migrations/ -run Test0009` y evidencia en `docs/verification/EP-15.md`
 - **Criterios de aceptación:**
   1. `grep -c 'pg_advisory_lock(6009)' migrations/migrations.go` = **1** o más, y el bloqueo se toma **antes** del bucle de `Apply` (`migrations/migrations.go:57`): la prueba concurrente `(./bin/botnet-api migrate & ./bin/botnet-recruit migrate & wait)` sobre base limpia sale **0** en los dos procesos y `grep -c 'already exists'` sobre la salida conjunta = **0**.
   2. `grep -cE "^SET LOCAL (lock_timeout|statement_timeout)" migrations/0009_recruit.up.sql` = **2** (`lock_timeout='2s'` y `statement_timeout='60s'`) y `grep -cE 'ALTER TABLE (ONLY )?nodes' migrations/0009_recruit.up.sql` = **0** (la tabla caliente no se toca).
@@ -20,7 +20,7 @@ created: 2026-11-17
 
 ### T-1502 — `recruit_candidates`, `recruit_candidate_events` y `recruit_jobs` con cola, lease y fencing
 - **Épica:** EP-15
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `DATABASE_URL=... go test ./migrations/ -run Test0009` y evidencia en `docs/verification/EP-15.md`
 - **Criterios de aceptación:**
   1. `psql -tAc "SELECT indexdef FROM pg_indexes WHERE indexname='recruit_candidate_key'"` contiene `UNIQUE (ip, port)` (`grep -c 'UNIQUE (ip, port)'` = **1**) y la misma fila insertada dos veces con `ON CONFLICT (ip,port) DO NOTHING` deja `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE ip='203.0.113.7' AND port=7547"` = **1** con salida **0** (idempotencia de alta).
   2. `psql -tAc "SELECT count(*) FROM pg_indexes WHERE indexname IN ('recruit_q_claim','recruit_q_lease','recruit_q_state','recruit_q_node','recruit_q_verified')"` = **5**, y `EXPLAIN SELECT candidate_id FROM recruit_candidates WHERE state IN ('new','eligible','deferred') ORDER BY next_attempt_at LIMIT 5` menciona `recruit_q_claim` (`grep -c 'recruit_q_claim'` = **1**).
@@ -34,7 +34,7 @@ created: 2026-11-17
 
 ### T-1503 — `recruit_windows`, `recruit_window_policy`, `recruit_control` y `recruit_planner_ticks` con unidad tipada
 - **Épica:** EP-15
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `DATABASE_URL=... go test ./migrations/ -run Test0009` y evidencia en `docs/verification/EP-15.md`
 - **Criterios de aceptación:**
   1. `psql -tAc "SELECT count(*) FROM pg_constraint WHERE conname='recruit_windows_unit_check'"` = **1** y `psql -c "INSERT INTO recruit_windows (window_start, unit, pps_budget, conn_budget, attempt_budget) VALUES (date_trunc('hour',now()),'gbit',1500,30,60)"` falla con `23514` (salida **≠ 0**): la unidad solo admite `pps|conn|attempt` `[injerto: V3]`.
   2. `psql -tAc "SELECT count(*) FROM recruit_control"` = **1** tras la migración (singleton `id=1`) y `psql -c "INSERT INTO recruit_control (id) VALUES (2)"` falla con `23514` (salida **≠ 0**); `psql -tAc "SELECT is_nullable FROM information_schema.columns WHERE table_name='recruit_control' AND column_name='tick_at'"` = **YES** (el latido admite nulo hasta el primer tick).
@@ -48,7 +48,7 @@ created: 2026-11-17
 
 ### T-1504 — `recruit_socks5_checks` con único ganador y evidencia dura; `recruit_exclusions`, `recruit_waves`, `recruit_source_ip`
 - **Épica:** EP-15
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `DATABASE_URL=... go test ./migrations/ -run Test0009` y evidencia en `docs/verification/EP-15.md`
 - **Criterios de aceptación:**
   1. `psql -tAc "SELECT indexdef FROM pg_indexes WHERE indexname='recruit_socks5_one_win'"` contiene `UNIQUE (candidate_id) WHERE ok` (`grep -c 'WHERE ok'` = **1**): tras insertar **5** filas `ok=true` del mismo `candidate_id`, solo la primera se acepta — `psql -tAc "SELECT count(*) FROM recruit_socks5_checks WHERE ok"` = **1**, `... WHERE candidate_id=$1` = **5** y el segundo `INSERT` devuelve `23505` (salida **≠ 0**) (A3-02).
   2. `psql -tAc "SELECT count(*) FROM pg_constraint WHERE conname='recruit_socks5_ok_evidence'"` = **1** con las cuatro condiciones: `http_status=200`, `bytes_in=0`, `latency_ms=1500`, `ip_match=true` falla (`23514`, salida **≠ 0**); `http_status=200`, `bytes_in=1`, `latency_ms=1501`, `ip_match=true` falla; y `bytes_in=1`, `latency_ms=1500`, `ip_match=true`, `http_status=200` pasa (salida **0**) `[injerto: V1]`.
@@ -62,7 +62,7 @@ created: 2026-11-17
 
 ### T-1505 — Arreglo del SKIP del DDL (gate G4): `DATABASE_URL` obligatorio, salida 2 sin DSN
 - **Épica:** EP-15
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `DATABASE_URL=... go test ./migrations/ -run Test0009` y evidencia en `docs/verification/EP-15.md`
 - **Criterios de aceptación:**
   1. Con `DATABASE_URL` definido, `go test ./migrations/ -v 2>&1 | grep -c -- '--- SKIP'` = **0** (hoy **1**) y `go test ./migrations/ 2>&1 | grep -c '^ok'` = **1**: las 11 tablas de la 0009 se aplican de verdad en el test (A3-12).
   2. Sin `DATABASE_URL`, la prueba deja de ser verde muda: `DATABASE_URL= go test ./migrations/ 2>&1 | grep -c -- '--- FAIL'` = **1** (hoy sale `ok` con 1 `SKIP`) y el mensaje del fallo menciona `DATABASE_URL` (`grep -c 'DATABASE_URL'` ≥ **1**).

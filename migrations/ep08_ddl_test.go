@@ -21,7 +21,9 @@ import (
 func TestApplyOnCleanDatabase(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		t.Skip("DATABASE_URL no definido: se omite la prueba DDL contra Postgres portable")
+		// Gate G4: omitir daba verde mudo; una migracion que nunca se
+		// aplica en el test tiene que doler.
+		t.Fatal("DATABASE_URL sin definir: la prueba de DDL no se omite")
 	}
 	ctx := context.Background()
 	admin, err := sql.Open("pgx", dsn)

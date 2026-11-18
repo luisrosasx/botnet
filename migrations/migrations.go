@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -35,7 +36,22 @@ func Files() ([]string, error) {
 // Apply aplica en orden las migraciones .up.sql pendientes, cada una en su
 // transaccion y registrada en schema_migrations. Idempotente por version.
 func Apply(db *sql.DB) error {
-	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+	ctx := context.Background()
+	// Cerrojo unico de aplicador: api y recruit migran a la vez y sin esto
+	// los dos ven "no aplicada", los dos aplican y se duplica la version
+	// (paso con los dos 0007). El lock es de sesion, asi que va sobre una
+	// conexion dedicada que se mantiene hasta el final.
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("migrations: conn: %w", err)
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock(6009)`); err != nil {
+		return fmt.Errorf("migrations: advisory lock: %w", err)
+	}
+	defer func() { _, _ = conn.ExecContext(ctx, `SELECT pg_advisory_unlock(6009)`) }()
+
+	if _, err := conn.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		version text PRIMARY KEY,
 		applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return fmt.Errorf("migrations: schema_migrations: %w", err)
@@ -46,7 +62,7 @@ func Apply(db *sql.DB) error {
 	}
 	for _, name := range names {
 		var applied bool
-		err := db.QueryRow(`SELECT true FROM schema_migrations WHERE version = $1`, name).Scan(&applied)
+		err := conn.QueryRowContext(ctx, `SELECT true FROM schema_migrations WHERE version = $1`, name).Scan(&applied)
 		if err == sql.ErrNoRows {
 			applied = false
 		} else if err != nil {
@@ -59,7 +75,7 @@ func Apply(db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("migrations: read %s: %w", name, err)
 		}
-		tx, err := db.Begin()
+		tx, err := conn.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("migrations: begin %s: %w", name, err)
 		}
