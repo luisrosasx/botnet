@@ -31,18 +31,23 @@ func main() {
 
 func run() error {
 	var (
-		claim  = flagBool("claim")
-		once   = flagBool("once")
-		worker = flagStr("worker", "probe-1")
-		stage  = flagStr("stage", "sweep")
-		limit  = flagInt("limit", 5)
-		api    = flagStr("api", "http://127.0.0.1:9110")
-		sweepJ = flagStr("sweep-json", "")
-		limitS = flagInt("limit", 0)
-		dryRun = flagBool("dry-run")
-		emitS  = flagBool("emit-sql")
-		cohS   = flagInt("cohort-seconds", defaultCohortSeconds)
+		claim   = flagBool("claim")
+		once    = flagBool("once")
+		worker  = flagStr("worker", "probe-1")
+		stage   = flagStr("stage", "sweep")
+		limit   = flagInt("limit", 5)
+		api     = flagStr("api", "http://127.0.0.1:9110")
+		sweepJ  = flagStr("sweep-json", "")
+		limitS  = flagInt("limit", 0)
+		dryRun  = flagBool("dry-run")
+		emitS   = flagBool("emit-sql")
+		cohS    = flagInt("cohort-seconds", defaultCohortSeconds)
+		stageB  = flagStr("stage", "")
+		bannerJ = flagStr("banner-json", "")
 	)
+	if stageB == "banner" {
+		return ejecutarBanner(context.Background(), bannerJ, dryRun)
+	}
 	if sweepJ != "" || dryRun {
 		return ejecutarSweep(context.Background(), sweepJ, limitS, dryRun, emitS, cohS)
 	}

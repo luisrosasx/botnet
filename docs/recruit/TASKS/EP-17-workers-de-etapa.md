@@ -21,7 +21,7 @@ created: 2026-11-17
 
 ### T-1702 — Banner con zgrab2: `device_class`, `model_guess` y `country`
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `--stage banner` sobre fixture y `go test ./cmd/botnet-probe/`; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `./bin/botnet-probe --stage banner --banner-json testdata/recruit/zgrab2.jsonl` sale **0** y `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE state='bannered'"` ≥ **1**; `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE state='bannered' AND device_class NOT IN ('A','B','C')"` = **0**.
   2. La clasificación viene de `internal/discovery`: `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE state='bannered' AND (model_guess IS NULL OR model_guess='')"` ≤ **20 %** del total `bannered` (medido con `count(*)` y una multiplicación en `awk`), usando `discovery.ParseZgrab2Output` + `discovery.Classify` (`grep -cE 'ParseZgrab2Output|discovery.Classify' cmd/botnet-probe/main.go` ≥ **1**).

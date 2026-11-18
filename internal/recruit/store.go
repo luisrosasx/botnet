@@ -514,3 +514,57 @@ func (s *Store) MarcarSinRespuesta(ctx context.Context, ip string, port int) err
 		 WHERE ip = $1::inet AND port = $2 AND state = 'sweeping'`, ip, port)
 	return err
 }
+
+// ClaseDeDispositivo traduce el tipo detectado a la clase de caudal del
+// blueprint: camara y NAS aguantan 5 Mbps (A), un router 3 (B) y lo que no
+// se reconoce baja a 2 (C). Se prefiere pecar de conservador.
+func ClaseDeDispositivo(tipo string) string {
+	switch tipo {
+	case "camera", "nas":
+		return "A"
+	case "router":
+		return "B"
+	default:
+		return "C"
+	}
+}
+
+// MarcarBanner guarda lo que dijo el banner y deja el candidato listo para
+// la credencial.
+func (s *Store) MarcarBanner(ctx context.Context, id int64, tipo, model, country string, asn int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET device_class_guess = $2, device_class = $3, model_guess = $4,
+		       country = NULLIF($5,''), asn = NULLIF($6,0),
+		       state = 'bannered', updated_at = now()
+		 WHERE candidate_id = $1`,
+		id, tipo, ClaseDeDispositivo(tipo), model, country, asn)
+	return err
+}
+
+// DescartarSinBanner mata el candidato por no tener banner util.
+func (s *Store) DescartarSinBanner(ctx context.Context, id int64, actor string) error {
+	if _, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state='discarded', fail_reason='no_banner', updated_at=now()
+		 WHERE candidate_id = $1 AND state <> 'discarded'`, id); err != nil {
+		return err
+	}
+	var seq int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(max(seq),0)+1 FROM recruit_candidate_events WHERE candidate_id=$1`, id).Scan(&seq); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidate_events (candidate_id, seq, from_state, to_state, reason, actor)
+		VALUES ($1,$2,'sweeping','discarded','no_banner',$3)`, id, seq, actor)
+	return err
+}
+
+// CandidatoPorIP devuelve el id del candidato de esa ip y puerto.
+func (s *Store) CandidatoPorIP(ctx context.Context, ip string, port int) (int64, error) {
+	var id int64
+	err := s.db.QueryRowContext(ctx, `
+		SELECT candidate_id FROM recruit_candidates WHERE ip = $1::inet AND port = $2`, ip, port).Scan(&id)
+	return id, err
+}

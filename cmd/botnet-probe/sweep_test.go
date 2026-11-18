@@ -31,3 +31,14 @@ func TestCohorte(t *testing.T) {
 		t.Fatalf("ventana por defecto=%d (quiero 90000)", tam)
 	}
 }
+
+// TestClaseDeDispositivo: camara y NAS van a clase A, router a B y lo
+// desconocido a C: se prefiere pecar de conservador.
+func TestClaseDeDispositivo(t *testing.T) {
+	casos := map[string]string{"camera": "A", "nas": "A", "router": "B", "unknown": "C", "": "C"}
+	for tipo, quiero := range casos {
+		if got := claseDeDispositivo(tipo); got != quiero {
+			t.Errorf("tipo %q => %s (quiero %s)", tipo, got, quiero)
+		}
+	}
+}
