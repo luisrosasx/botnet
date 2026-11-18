@@ -47,7 +47,7 @@ done
 PTR=$(dig +short -x "$IP" 2>/dev/null | tr -d '\r' | head -1)
 ABUSE=""
 if [ -n "$PTR" ]; then
-  dominio=$(printf '%s' "$PTR" | sed 's/\.$//' | awk -F. '{n=NF; printf "%s.%s", $(n-1), $n}')
+  dominio=$(printf '%s' "$PTR" | sed 's/\.$//' | awk -F. '{n=NF; if (n < 2) print $1; else printf "%s.%s", $(n-1), $n}')
   ABUSE="abuse@$dominio"
 fi
 
