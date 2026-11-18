@@ -47,7 +47,24 @@ func (s *Store) AbrirOleada(ctx context.Context) (int, error) {
 // misma oleada es idempotente (T-2101 AC1). `cerrada` dice si esta llamada
 // cerro algo.
 func (s *Store) CerrarOleada(ctx context.Context, nota string) (no int, cerrada bool, err error) {
+	// La nota es la identidad de la oleada: cerrar dos veces con la misma
+	// nota no crea una segunda fila (T-2101 AC1, idempotencia).
+	if nota != "" {
+		var ya int
+		err = s.db.QueryRowContext(ctx, `
+			SELECT wave_no FROM recruit_waves
+			 WHERE note = $1 AND state = 'cerrada' LIMIT 1`, nota).Scan(&ya)
+		if err == nil {
+			return ya, false, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return 0, false, err
+		}
+	}
 	no, err = s.oleadaAbierta(ctx)
+	if err == nil && no == 0 {
+		no, err = s.AbrirOleada(ctx)
+	}
 	if err != nil || no == 0 {
 		return no, false, err
 	}
