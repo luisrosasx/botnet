@@ -108,3 +108,10 @@ Bucle de 20 enrolls contra la API viva: **20/20 en 201**. Total **21 nodos enrol
 Condicion (4) del objetivo pide ademas **verificacion SOCKS5 real por nodo**: falta levantar el
 gateway (`--socks5-listen`) y que cada nodo tenga un agente escuchando para que `botctl recruit
 verify` deje fila `ok`. Hoy la seccion `socks5` del gate sigue en 0/20.
+
+## Gateway vivo en el VPS (2026-11-18)
+
+`botnet-gw --serve --socks5-listen 127.0.0.1:1080` corriendo; el saludo SOCKS5 responde **0502**.
+Con esto el frente existe en el servidor. Falta unidad systemd (hoy `nohup`) y, para la
+verificacion por nodo, un agente escuchando en cada uno (o un doble) que `botctl recruit verify`
+pueda atravesar.
