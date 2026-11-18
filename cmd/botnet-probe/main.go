@@ -37,7 +37,15 @@ func run() error {
 		stage  = flagStr("stage", "sweep")
 		limit  = flagInt("limit", 5)
 		api    = flagStr("api", "http://127.0.0.1:9110")
+		sweepJ = flagStr("sweep-json", "")
+		limitS = flagInt("limit", 0)
+		dryRun = flagBool("dry-run")
+		emitS  = flagBool("emit-sql")
+		cohS   = flagInt("cohort-seconds", defaultCohortSeconds)
 	)
+	if sweepJ != "" || dryRun {
+		return ejecutarSweep(context.Background(), sweepJ, limitS, dryRun, emitS, cohS)
+	}
 	_ = once // --once es el modo por defecto cuando hay --claim
 	if !claim {
 		fmt.Printf("%s: nada que hacer sin --claim\n", name)

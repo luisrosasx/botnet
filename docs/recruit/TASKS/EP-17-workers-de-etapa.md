@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-1701 — `botnet-probe`: worker de barrido SYN con cohorte de 60 s
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./cmd/botnet-probe/` y `--sweep-json` sobre fixture; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `go build -o bin/botnet-probe ./cmd/botnet-probe && ./bin/botnet-probe --sweep-json testdata/recruit/masscan.ndjson --limit 1000` sale **0** y deja `psql -tAc "SELECT count(*) FROM recruit_candidates WHERE source='masscan'"` ≥ **1** con al menos una fila en `state='bannered'` o `state='sweeping'` (`count(*)` ≥ **1**).
   2. masscan sale con la IP y el adaptador explícitos: `./bin/botnet-probe --dry-run | grep -c -- '--source-ip 74.208.94.91'` = **1** y `grep -c -- '--adapter eth0'` = **1** (valores leídos de `/etc/botnet-recruit/env`, no del código — A1-14); `ps -o ni= -C masscan` da **10** (`nice -n 10`) e `ionice -p$(pgrep masscan)` imprime clase **3** (`ionice -c3`).

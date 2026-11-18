@@ -494,3 +494,23 @@ func (s *Store) Complete(ctx context.Context, c Claimed, outcome, reason, actor 
 	}
 	return true, s.TransitionOutcome(ctx, c.CandidateID, c.LeaseOwner, c.LeaseToken, to, reason, actor, outcome)
 }
+
+// UpsertCandidato da de alta un candidato de barrido sin duplicar. La
+// idempotencia la pone UNIQUE (ip,port), no el llamante.
+func (s *Store) UpsertCandidato(ctx context.Context, ip string, port int, source, estado string) error {
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidates (ip, port, source, state)
+		VALUES ($1::inet, $2, $3, $4)
+		ON CONFLICT (ip, port) DO NOTHING`, ip, port, source, estado)
+	return err
+}
+
+// MarcarSinRespuesta cierra un candidato de barrido sin SYN-ACK: muere por
+// `no_answer`, no se queda colgado en `sweeping`.
+func (s *Store) MarcarSinRespuesta(ctx context.Context, ip string, port int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state='discarded', fail_reason='no_answer', updated_at=now()
+		 WHERE ip = $1::inet AND port = $2 AND state = 'sweeping'`, ip, port)
+	return err
+}
