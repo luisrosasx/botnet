@@ -1,0 +1,46 @@
+# T-2102: flota de laboratorio del VPS — un agente botd por nodo real.
+#
+# La instancia es el ultimo octeto del loopback propio del nodo:
+# botnet-node@7 escucha SOCKS5 en 127.0.0.7:1080 y sale a la red con esa
+# misma direccion (-source-ip), de forma que nodes.public_ip es distinta
+# entre nodos y contrastable en recruit_socks5_checks.egress_ip. Sin esta
+# identidad de red propia, veinte agentes en una sola maquina serian un
+# clone de la misma fila.
+#
+# Arranque directo, sin -parent: aqui el relanzamiento lo da systemd
+# (Restart=always); el watchdog padre es para firmware sin systemd.
+#
+# No va en recruit.slice: su techo agregado (CPUQuota=300%, MemoryMax=1536M,
+# TasksMax=256) ya lo consumen el gateway, el orquestador y los tres workers,
+# y veinte agentes mas se quedarian sin margen.
+#
+# El estado plano (device_token, ticket, config.json, node.json) lo prepara
+# scripts/field/fleet_nodes.sh antes del primer arranque.
+[Unit]
+Description=Agente BOT.NET %i (flota de laboratorio)
+Documentation=file:/root/botnet-repo/docs/state/ESTADO-ACTUAL.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/botnet-nodes/common.env
+ExecStart=/usr/local/bin/botd \
+    -config /var/lib/botnet-nodes/%i/config.json \
+    -node-dir /var/lib/botnet-nodes/%i \
+    -socks5-addr 127.0.0.%i:1080 \
+    -socks5-direct \
+    -source-ip 127.0.0.%i
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+MemoryMax=32M
+TasksMax=32
+StateDirectory=botnet-nodes
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -45,26 +46,30 @@ var classTag = "class-A"
 
 func main() {
 	var (
-		showVer     bool
-		printEnv    bool
-		printRoot   bool
-		buildLabel  bool
-		cfgPath     string
-		nodeDirOv   string
-		socks5Addr  string
-		metricsAddr string
-		runFor      time.Duration
-		asParent    bool
-		asChild     bool
-		asGuard     bool
-		stage       bool
-		smokeMode   bool
-		stubURL     string
-		doCommit    bool
+		showVer      bool
+		printEnv     bool
+		printRoot    bool
+		buildLabel   bool
+		cfgPath      string
+		nodeDirOv    string
+		socks5Addr   string
+		sourceIP     string
+		socks5Direct bool
+		metricsAddr  string
+		runFor       time.Duration
+		asParent     bool
+		asChild      bool
+		asGuard      bool
+		stage        bool
+		smokeMode    bool
+		stubURL      string
+		doCommit     bool
 	)
 	flag.StringVar(&cfgPath, "config", "", "path to JSON config file")
 	flag.StringVar(&nodeDirOv, "node-dir", "", "override node_dir (estado plano del agente)")
 	flag.StringVar(&socks5Addr, "socks5-addr", proxy.DefaultSOCKSAddr, "loopback del SOCKS5 embebido; vacio = proxy off (EP-06)")
+	flag.StringVar(&sourceIP, "source-ip", os.Getenv("BOTNET_SOURCE_IP"), "IP local con la que el nodo sale a la red (alta, latido y SOCKS5); vacio = la del kernel (T-2102)")
+	flag.BoolVar(&socks5Direct, "socks5-direct", false, "sin tunel H2 el proxy del nodo marca el destino desde su -source-ip (flota de laboratorio; en produccion abre internal/tunnel)")
 	flag.StringVar(&metricsAddr, "metrics-addr", "", "servir /metrics del agente aqui: botnet_tenant_count (EP-06; vacio = off)")
 	flag.BoolVar(&showVer, "version", false, "print version and exit")
 	flag.BoolVar(&printEnv, "print-env", false, "print runtime budget env and exit")
@@ -117,6 +122,10 @@ func main() {
 	nodeDir := cfg.NodeDir
 	if nodeDirOv != "" {
 		nodeDir = nodeDirOv
+	}
+	opts := agentOpts{
+		socks5Addr: socks5Addr, metricsAddr: metricsAddr,
+		sourceIP: sourceIP, directDial: socks5Direct,
 	}
 	log := logx.New("info")
 	if stage {
@@ -186,7 +195,7 @@ func main() {
 	}
 	if asChild {
 		err := watchdog.RunChild(ctx, watchdog.ChildConfig{
-			Work:        agentWork(log, cfg, nodeDir, version, socks5Addr, metricsAddr),
+			Work:        agentWork(log, cfg, nodeDir, version, opts),
 			PidfilePath: pidfile,
 			Log:         log,
 		})
@@ -199,7 +208,7 @@ func main() {
 		}
 		return
 	}
-	if err := agentWork(log, cfg, nodeDir, version, socks5Addr, metricsAddr)(ctx); err != nil {
+	if err := agentWork(log, cfg, nodeDir, version, opts)(ctx); err != nil {
 		log.Error("agente", "err", err)
 		os.Exit(1)
 	}
@@ -380,10 +389,20 @@ func stageSelf(nodeDir string, log *slog.Logger) error {
 	return nil
 }
 
+// agentOpts agrupa los ajustes de arranque que cambian cuando hay varias
+// instancias del agente en la misma maquina (T-2102: la flota de
+// laboratorio del VPS, un botd por nodo con su propio 127.0.0.x).
+type agentOpts struct {
+	socks5Addr  string // direccion del SOCKS5 embebido; vacio = proxy off
+	metricsAddr string // /metrics del agente; vacio = off
+	sourceIP    string // IP local de salida del nodo (alta, latido, SOCKS5)
+	directDial  bool   // marcar el destino sin tunel H2 (ver startProxy)
+}
+
 // agentWork es el payload del rol hijo (y del arranque directo
 // historico): node.json valido → agente; si no, enrolado. Devuelve el
 // error para que el watchdog lo trate como muerte del hijo.
-func agentWork(log *slog.Logger, cfg config.Config, nodeDir, ver, socks5Addr, metricsAddr string) func(context.Context) error {
+func agentWork(log *slog.Logger, cfg config.Config, nodeDir, ver string, opts agentOpts) func(context.Context) error {
 	return func(ctx context.Context) error {
 		// T-1404 AC1 chain hook: when BOTNET_RESTART_FILE names a live
 		// marker, this boot exits with ExitNeedRestart (75) and consumes
@@ -400,7 +419,7 @@ func agentWork(log *slog.Logger, cfg config.Config, nodeDir, ver, socks5Addr, me
 		if err != nil {
 			// Enrolado: sin node.json valido, ceremonial POST /v1/enroll.
 			log.Info("botd start", "mode", "enroll", "dir", nodeDir)
-			id, err = runEnroll(ctx, log, cfg, nodeDir)
+			id, err = runEnroll(ctx, log, cfg, nodeDir, opts.sourceIP)
 			if err != nil {
 				return err
 			}
@@ -411,15 +430,16 @@ func agentWork(log *slog.Logger, cfg config.Config, nodeDir, ver, socks5Addr, me
 			log.Info("botd start", "mode", "agent", "slug", id.Slug)
 			_ = machine.Transition(state.Agent)
 		}
-		return runAgent(ctx, log, cfg, id, machine, ver, socks5Addr, metricsAddr, nodeDir)
+		return runAgent(ctx, log, cfg, id, machine, ver, nodeDir, opts)
 	}
 }
 
 // runEnroll completa el alta contra cfg.Endpoint. El device_token y el
 // ticket los dejo el probe (EP-02) en el estado o por entorno; un 409
 // idempotente se resuelve re-emitiendo certificado: log reenroll=ok sin
-// fila nueva (T-0308).
-func runEnroll(ctx context.Context, log *slog.Logger, cfg config.Config, nodeDir string) (agent.NodeIdentity, error) {
+// fila nueva (T-0308). sourceIP ata el socket del alta a la IP propia del
+// nodo, que es lo que el backend anota en nodes.public_ip (A1-04).
+func runEnroll(ctx context.Context, log *slog.Logger, cfg config.Config, nodeDir, sourceIP string) (agent.NodeIdentity, error) {
 	stateDir, err := agent.EnsureStateDir(nodeDir)
 	if err != nil {
 		return agent.NodeIdentity{}, err
@@ -432,6 +452,7 @@ func runEnroll(ctx context.Context, log *slog.Logger, cfg config.Config, nodeDir
 		Endpoint: cfg.Endpoint, DeviceToken: token, Ticket: agent.ReadTicket(stateDir),
 		Arch: agent.ArchFromRuntime(), AgentVer: version,
 		NodeDir: nodeDir, StateDir: stateDir,
+		HTTP: agent.SourceIPClient(sourceIP),
 	}
 	out, err := agent.Enroll(ctx, &ec)
 	if err != nil {
@@ -455,7 +476,7 @@ func runEnroll(ctx context.Context, log *slog.Logger, cfg config.Config, nodeDir
 // entitlements en caliente y supervisor in-process. El proxy SOCKS5
 // embebido (EP-06) arranca aqui en loopback; sin el tag socks5 el binario
 // informa socks5=off y el plano de control sigue vivo.
-func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent.NodeIdentity, machine *state.Machine, ver, socks5Addr, metricsAddr, nodeDir string) error {
+func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent.NodeIdentity, machine *state.Machine, ver, nodeDir string, opts agentOpts) error {
 	nodeID, err := agent.ParseUUID(id.NodeID)
 	if err != nil {
 		log.Error("node_id en node.json", "err", err)
@@ -465,19 +486,21 @@ func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent
 	// gauge botnet_tenant_count del /metrics del agente sale de aqui
 	// (EP-06 T-0606 AC3).
 	adm := proxy.NewAdmission(0)
-	if ps := startProxy(log, cfg, socks5Addr, adm); ps != nil {
+	if ps := startProxy(log, nodeDir, adm, opts); ps != nil {
 		defer ps.Close()
 	}
-	if metricsAddr != "" {
-		stopMetrics := startMetrics(log, metricsAddr, adm)
+	if opts.metricsAddr != "" {
+		stopMetrics := startMetrics(log, opts.metricsAddr, adm)
 		defer stopMetrics()
 	}
 	class := agent.DeviceClassForArch(id.Arch)
 	mgr := agent.NewEntitlementManager(class, agent.Entitlements{})
 	deps := agent.AgentDeps{
-		Log:       log,
-		Machine:   machine,
-		Client:    &agent.HeartbeatClient{Endpoint: cfg.Endpoint, NodeID: nodeID, AgentVer: ver},
+		Log:     log,
+		Machine: machine,
+		// El latido sale por la misma IP que el alta: MarkLive(c.IP()) no
+		// puede anotar una direccion distinta de la del alta (A1-04).
+		Client:    &agent.HeartbeatClient{Endpoint: cfg.Endpoint, NodeID: nodeID, AgentVer: ver, HTTP: agent.SourceIPClient(opts.sourceIP)},
 		Manager:   mgr,
 		Sup:       agent.NewSupervisor(log),
 		IntervalS: cfg.IntervalS,
@@ -494,14 +517,18 @@ func runAgent(ctx context.Context, log *slog.Logger, cfg config.Config, id agent
 // startProxy arranca el SOCKS5 embebido del nodo (EP-06). El tunel H2
 // (internal/tunnel, EP-04) abre los streams: mientras no existe, el
 // opener devuelve ErrNoTunnel y cada CONNECT cae a "host unreachable"
-// interno sin tumbar el listener. Devuelve nil si el proxy no puede o no
-// debe vivir en este build; nunca aborta el agente.
-func startProxy(log *slog.Logger, cfg config.Config, socks5Addr string, adm *proxy.Admission) *proxy.Server {
-	if socks5Addr == "" {
+// interno sin tumbar el listener. Con -socks5-direct el propio nodo marca
+// el destino desde su -source-ip: es la via de la flota de laboratorio de
+// T-2102 (veinte agentes en una maquina, uno por 127.0.0.x), donde no hay
+// tunel que valga y la IP de salida tiene que ser la del nodo. Devuelve nil
+// si el proxy no puede o no debe vivir en este build; nunca aborta el
+// agente.
+func startProxy(log *slog.Logger, nodeDir string, adm *proxy.Admission, opts agentOpts) *proxy.Server {
+	if opts.socks5Addr == "" {
 		log.Info("proxy socks5=off", "motivo", "-socks5-addr vacio")
 		return nil
 	}
-	stateDir, err := agent.EnsureStateDir(cfg.NodeDir)
+	stateDir, err := agent.EnsureStateDir(nodeDir)
 	if err != nil {
 		log.Warn("proxy socks5=off", "motivo", "estado del nodo", "err", err)
 		return nil
@@ -510,8 +537,11 @@ func startProxy(log *slog.Logger, cfg config.Config, socks5Addr string, adm *pro
 	opener := proxy.OpenerFunc(func(context.Context, proxy.StreamMeta) (io.ReadWriteCloser, error) {
 		return nil, proxy.ErrNoTunnel
 	})
+	if opts.directDial {
+		opener = proxy.OpenerFunc(dialDirectFrom(opts.sourceIP))
+	}
 	ps, err := proxy.Start(proxy.Config{
-		Addr: socks5Addr, Secret: secret, Opener: opener, Log: log,
+		Addr: opts.socks5Addr, Secret: secret, Opener: opener, Log: log,
 		Table: proxy.NewStreamTable(0), Sup: proxy.NewPanicBudget(),
 		Adm: adm, TenantQuota: 8,
 		Reg: proxy.NewRegistry(nil), CountersTable: proxy.NewCounterTable(),
@@ -526,6 +556,21 @@ func startProxy(log *slog.Logger, cfg config.Config, socks5Addr string, adm *pro
 	default:
 		log.Info("proxy socks5=on", "addr", ps.Addr(), "loopback_only", true)
 		return ps
+	}
+}
+
+// dialDirectFrom es el opener de -socks5-direct: el propio nodo abre el
+// TCP contra el destino que pidio el cliente SOCKS5, atando el socket a su
+// -source-ip. Asi la IP que el destino observa es la del nodo, que es justo
+// lo que contrasta recruit_socks5_checks.ip_match (T-2102). sourceIP vacio
+// = la que elija el kernel.
+func dialDirectFrom(sourceIP string) func(context.Context, proxy.StreamMeta) (io.ReadWriteCloser, error) {
+	d := &net.Dialer{Timeout: 5 * time.Second}
+	if ip := net.ParseIP(sourceIP); ip != nil {
+		d.LocalAddr = &net.TCPAddr{IP: ip}
+	}
+	return func(ctx context.Context, m proxy.StreamMeta) (io.ReadWriteCloser, error) {
+		return d.DialContext(ctx, "tcp", m.Target())
 	}
 }
 
