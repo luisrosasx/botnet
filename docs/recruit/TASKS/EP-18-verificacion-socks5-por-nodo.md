@@ -49,7 +49,7 @@ created: 2026-11-17
 
 ### T-1804 — `botctl recruit verify --json` con evidencia por intento
 - **Épica:** EP-18
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `botctl recruit verify --fixture … --json` y conteos en `recruit_socks5_checks`; evidencia en `docs/verification/EP-18.md`
 - **Criterios de aceptación:**
   1. `botctl recruit verify --node=<uuid> --json` sale **0** e imprime las **7** claves: `grep -cE '"(node_id|target|http_status|bytes_in|latency_ms|egress_ip|ip_match)"'` = **7** con `target` no vacío.
   2. Una fila por intento: dos ejecuciones sobre el mismo candidato dejan `psql -tAc "SELECT count(*) FROM recruit_socks5_checks WHERE candidate_id=$1"` = **2** con `attempt` **1** y **2** (`psql -tAc "SELECT count(*) FROM (SELECT DISTINCT attempt FROM recruit_socks5_checks WHERE candidate_id=$1) x"` = **2**) sin violar `recruit_socks5_key`.

@@ -82,6 +82,9 @@ func main() {
 	if flag.NArg() > 0 {
 		cmd = flag.Arg(0)
 	}
+	if cmd == "recruit" && flag.NArg() > 1 && flag.Arg(1) == "verify" {
+		os.Exit(verify(flag.Args()[2:], os.Stdout))
+	}
 	if cmd != "status" {
 		fmt.Fprintf(os.Stderr, "botctl: comando no implementado: %s\n", cmd)
 		os.Exit(2)

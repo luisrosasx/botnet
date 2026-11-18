@@ -1,0 +1,3 @@
+{"ip": "198.18.9.1", "port": 80, "target": "www.example.com", "http_status": 200, "bytes_in": 512, "latency_ms": 120, "egress_ip": "198.51.100.7", "ip_match": true}
+{"ip": "198.18.9.2", "port": 80, "target": "www.example.com", "http_status": 200, "bytes_in": 0, "latency_ms": 120, "egress_ip": "74.208.94.91", "ip_match": false}
+{"ip": "198.18.9.3", "port": 80, "target": "www.example.com", "http_status": 200, "bytes_in": 0, "latency_ms": 120, "egress_ip": "74.208.94.91", "ip_match": false}
