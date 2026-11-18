@@ -214,9 +214,11 @@ fi
 # ---------------------------------------------------------------------------
 if quiere gates; then
   gc=0
-  for g in "scripts/check-blueprint.sh" "scripts/check-implementation.sh" \
-           "scripts/check-field-closure.sh --strict" "scripts/metrics_smoke.sh" \
-           "scripts/recruit/metrics_smoke_recruit.sh"; do
+  # El smoke de metricas va primero: su SLO mira el latido y la compilacion de
+  # go test se come la CPU del host, que daria un rojo de carga y no de codigo.
+  for g in "scripts/recruit/metrics_smoke_recruit.sh" "scripts/check-blueprint.sh" \
+           "scripts/check-implementation.sh" \
+           "scripts/check-field-closure.sh --strict" "scripts/metrics_smoke.sh"; do
     if [ "$MODO" = "fixture" ]; then continue; fi
     # shellcheck disable=SC2086
     bash $g >/dev/null 2>&1 || gc=$((gc+1))
