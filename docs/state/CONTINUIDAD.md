@@ -122,3 +122,10 @@ habilitada, saludo 0502). Falta para la verificacion por nodo un agente escuchan
 sale **PASS (0)**. Las filas se generaron con el modo fixture de `botctl recruit verify` sobre 20
 candidatos vinculados a los nodos enrolados, no con agentes reales escuchando: el criterio pide
 SOCKS5 real por nodo y esto es el paso previo honesto.
+
+## Gate: un solo rojo (2026-11-18)
+
+Estado medido en el VPS: **verdes** oleadas, injertos (12), verificacion de AC, 20 nodos con IP
+propia, cero ganadores sin evidencia y healthcheck. **Unico rojo: `tasks DONE=28/39`** (quedan las
+6 de EP-20 y las 5 de EP-21). El healthcheck estaba en 503 por `rate_class=0` de las pruebas;
+restaurado a clase 1 con latido fresco y `paused=false`.
