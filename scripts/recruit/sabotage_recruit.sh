@@ -104,11 +104,15 @@ fi
 
 # 4. Puerta vaciada: una fila PASS menos y el gate de campo se cae.
 if quiere puerta_vaciada; then
-  cp docs/verification/EP-15.md /tmp/ep15.sabotaje.md
-  grep -v '| PASS |' docs/verification/EP-15.md > /tmp/ep15.nuevo.md
-  mv /tmp/ep15.nuevo.md docs/verification/EP-15.md
+  # Copia con nombre propio: dos sabotajes a la vez se pisaban el /tmp fijo y
+  # el segundo restauraba basura, dejando el informe sin filas PASS.
+  bak=$(mktemp)
+  cp docs/verification/EP-15.md "$bak"
+  grep -v '| PASS |' docs/verification/EP-15.md > "$bak.nuevo"
+  mv "$bak.nuevo" docs/verification/EP-15.md
   probar puerta_vaciada gates
-  mv /tmp/ep15.sabotaje.md docs/verification/EP-15.md
+  cp "$bak" docs/verification/EP-15.md
+  rm -f "$bak"
 fi
 
 # 5. psql fuera del PATH: el paraguas distingue "falta herramienta" (2).
