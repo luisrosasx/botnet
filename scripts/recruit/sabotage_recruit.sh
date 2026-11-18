@@ -134,5 +134,6 @@ if quiere servicio_parado; then
   sleep 2
 fi
 
-printf 'sabotajes=%d fallan=%d\n' "$TOTAL" "$FALLAN"
+# `fallan` cuenta los sabotajes que MUERDEN; los falsos verdes van aparte.
+printf 'sabotajes=%d fallan=%d falsos_verdes=%d\n' "$TOTAL" "$((TOTAL-FALLAN))" "$FALLAN"
 [ "$FALLAN" -eq 0 ]
