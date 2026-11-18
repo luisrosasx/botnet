@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-1901 — `bootstrap_vps.sh`: paquetes, usuario, `env` 0640 y preflight con salida 2
 - **Épica:** EP-19
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: preflight 0/2, env 640 root:botnet, max_connections 100 y barrido real; evidencia en docs/verification/EP-19.md
 - **Criterios de aceptación:**
   1. `bash scripts/recruit/bootstrap_vps.sh --check; echo exit=$?` = **0** en el VPS e imprime las 6 líneas de comprobación: `grep -cE '^(masscan|zgrab2|psql|ssh|curl|max_connections)='` = **6** (y `dpkg -l | grep -cE '^ii +(masscan|zgrab2)'` = **2**).
   2. Con una herramienta ausente el preflight no mide: `PATH=/usr/bin bash scripts/recruit/bootstrap_vps.sh --check; echo exit=$?` = **2** (gate G5: hoy `command -v psql || echo NO` da `NO` y no hay preflight alguno).
