@@ -149,12 +149,14 @@ func run(args []string, out, errOut io.Writer) int {
 
 	ev, reqErr := pedirPorSocks5(ctx, proxyAddr, secret, *node, target)
 	attempt, ok, verErr := st.Verificar(ctx, ev)
-	if verErr != nil {
-		fmt.Fprintf(errOut, "socks5check: verificar: %v\n", verErr)
-		return 1
-	}
 	if reqErr != nil {
 		fmt.Fprintf(errOut, "socks5check: nodo %s proxy %s: %v\n", *node, proxyAddr, reqErr)
+	}
+	if verErr != nil {
+		// La evidencia se imprime igualmente: sin fila escrita hay que ver
+		// que es lo que se midio antes de ir a mirar la base.
+		fmt.Fprintf(errOut, "socks5check: verificar: %v\n", verErr)
+		ok = false
 	}
 
 	if *asJSON {
@@ -274,7 +276,9 @@ func pedirPorSocks5(ctx context.Context, proxyAddr string, secret []byte, nodeID
 		NodeID: nodeID, TS: time.Now().UTC(),
 	})
 
-	ev := recruit.Evidencia{Target: target, NodeID: nodeID}
+	// El candidato que se mide es la puerta del nodo: la (ip,port) donde
+	// escucha su proxy. Verificar busca la fila por ese par (T-1804).
+	ev := recruit.Evidencia{Target: target, NodeID: nodeID, IP: hostProxy(proxyAddr), Port: proxyPort(proxyAddr)}
 	t0 := time.Now()
 	conn, err := socksDial(ctx, proxyAddr, token, nodeID, host, port)
 	if err != nil {
@@ -318,6 +322,16 @@ func hostProxy(proxyAddr string) string {
 		return h
 	}
 	return proxyAddr
+}
+
+// proxyPort: el puerto del proxy del nodo, que es el del candidato medido.
+func proxyPort(proxyAddr string) int {
+	if _, p, err := net.SplitHostPort(proxyAddr); err == nil {
+		if n, cerr := strconv.Atoi(p); cerr == nil {
+			return n
+		}
+	}
+	return 0
 }
 
 func pathOr(p string) string {
