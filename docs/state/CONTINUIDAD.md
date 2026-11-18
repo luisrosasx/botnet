@@ -58,3 +58,11 @@ injertos (12) y healthcheck. Quedan exactamente dos huecos, los dos honestos:
 
 Para llegar a verde: cerrar las 16 tasks y conseguir 20 nodos verificados con SOCKS5 real
 (lo que exige desplegar API y gateway en el VPS y tener dispositivos).
+
+## Cierre de ronda (2026-11-18)
+
+EP-19 tiene ya probados: preflight (0 y 2), crash-loop, 3 workers activos y con resurrección,
+barrido real (95 SYN-ACK), reglas de 503, pausa que corta el reparto, rollback sin tocar el DDL
+y arranque en frío. Pendiente de EP-19: `public_ip` AC2/AC4/AC5 y purge. Después EP-20 y EP-21.
+
+Gate en el VPS: FAIL por 2 (23/39 tasks, 0/20 nodos). Nada más se puede cerrar sin flota.
