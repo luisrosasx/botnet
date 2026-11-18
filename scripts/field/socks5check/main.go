@@ -104,7 +104,7 @@ func run(args []string, out, errOut io.Writer) int {
 	}
 	defer db.Close()
 
-	publicIP, status, err := leerNodo(ctx, db, *node)
+	publicIP, status, class, err := leerNodo(ctx, db, *node)
 	if err != nil {
 		fmt.Fprintf(errOut, "socks5check: %v\n", err)
 		return 3
@@ -121,7 +121,7 @@ func run(args []string, out, errOut io.Writer) int {
 
 	// El candidato es la puerta por la que se mide: la misma (ip,port) que
 	// despues consulta recruit.Store.Verificar. Sin fila no hay chequeo.
-	if err := asegurarCandidato(ctx, db, host, *port); err != nil {
+	if err := asegurarCandidato(ctx, db, host, *port, class); err != nil {
 		fmt.Fprintf(errOut, "socks5check: candidato %s: %v\n", proxyAddr, err)
 		return 3
 	}
@@ -206,18 +206,18 @@ func nodeSecret(stateDir, secretHex string) ([]byte, error) {
 }
 
 // leerNodo lee lo que el backend ya sabe del nodo: su IP de salida (la que
-// anoto el alta o el primer latido, A1-04) y su estado.
-func leerNodo(ctx context.Context, db *sql.DB, nodeID string) (publicIP, status string, err error) {
+// anoto el alta o el primer latido, A1-04), su estado y su clase.
+func leerNodo(ctx context.Context, db *sql.DB, nodeID string) (publicIP, status, class string, err error) {
 	err = db.QueryRowContext(ctx, `
-		SELECT COALESCE(public_ip::text, ''), status
-		  FROM nodes WHERE node_id = $1::uuid`, nodeID).Scan(&publicIP, &status)
+		SELECT COALESCE(public_ip::text, ''), status, COALESCE(device_class, '')
+		  FROM nodes WHERE node_id = $1::uuid`, nodeID).Scan(&publicIP, &status, &class)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", "", fmt.Errorf("nodo %s inexistente", nodeID)
+		return "", "", "", fmt.Errorf("nodo %s inexistente", nodeID)
 	}
 	if err != nil {
-		return "", "", fmt.Errorf("leer nodo: %w", err)
+		return "", "", "", fmt.Errorf("leer nodo: %w", err)
 	}
-	return inetText(publicIP), status, nil
+	return inetText(publicIP), status, class, nil
 }
 
 // inetText quita la mascara que Postgres puede arrastrar en ::text: el
@@ -230,12 +230,16 @@ func inetText(s string) string {
 }
 
 // asegurarCandidato deja la puerta donde se mide el nodo. 'manual' es el
-// origen que admite el esquema para lo que no nacio del barrido.
-func asegurarCandidato(ctx context.Context, db *sql.DB, ip string, port int) error {
+// origen que admite el esquema para lo que no nacio del barrido, y la clase
+// es la del nodo que escucha detras (A escucha SOCKS5; B/C no), no un numero
+// inventado: la lee el propio comando de la fila del alta.
+func asegurarCandidato(ctx context.Context, db *sql.DB, ip string, port int, class string) error {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO recruit_candidates (ip, port, state, source, device_class_guess)
-		VALUES ($1::inet, $2, 'eligible', 'manual', 'A')
-		ON CONFLICT (ip, port) DO NOTHING`, ip, port)
+		INSERT INTO recruit_candidates (ip, port, state, source, device_class_guess, device_class)
+		VALUES ($1::inet, $2, 'eligible', 'manual', $3, NULLIF($3, ''))
+		ON CONFLICT (ip, port) DO UPDATE
+		  SET device_class = COALESCE(NULLIF(EXCLUDED.device_class, ''), recruit_candidates.device_class)`,
+		ip, port, class)
 	return err
 }
 
