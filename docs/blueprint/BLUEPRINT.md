@@ -26,6 +26,11 @@ Un solo binario para los tres perfiles; la clase fija entrega, flash y tope de a
 | B | armv5, armv7 | 64–128 MB | ≤3,1 MB | ≤4,6 MB | 2,6 MB upx, slot único | ≤4 MB | ≤120 KB | <1 % / ≤15 % @3M | 3 Mbps |
 | C | mipsbe, mipsle | 32 MB / 8 MB flash | ≤3,1 MB | ≤4,6 MB | 2,6 MB upx | 3,8 MB, spool `/tmp` | ≤120 KB | <1 % / ≤15 % @2M | 2 Mbps |
 
+Techo de flash y proxy: el binario de clase A lleva el proxy SOCKS5 compilado
+(`-tags socks5`), pesa ~8,11 MB y por eso su tope sube a **8.900.000 B**, por
+debajo del techo de flash de 8.388.608 B con 14 KB de margen y sin empaquetar
+(si se empaqueta, `strings` deja de ver el binario). Clase B y C conservan el
+stub (`internal/proxy/socks5_stub.go`) y su tope upx de 2.726.297 B.
 Margen: RSS pico 4,6/6 MB; flash 3,8/8 MB. `GOMEMLIMIT=5MiB`, auto-matanza por heap con revival por watchdog; ticket TLS y `node_id` persistidos: un revive no publica handshakes completos (A1-03).
 
 **Presupuesto de plano de datos `[injerto: P3]`** — partidas nombradas (A2-03/A2-16: 0,185 USD/nodo era cómputo sin egress):

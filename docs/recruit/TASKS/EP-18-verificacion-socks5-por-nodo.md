@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-1801 — `-tags socks5` en la matriz para clase A con `MAX_A` nuevo
 - **Épica:** EP-18
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/cross/build_matrix.sh` y marcas en los binarios; evidencia en `docs/verification/EP-18.md`
 - **Criterios de aceptación:**
   1. `strings dist/botd-amd64 | grep -c 'bot-session malformado'` = **1** (hoy **0**) y lo mismo en `dist/botd-arm64` = **1**; en `dist/botd-armv7` y `dist/botd-mipsbe` = **0** (B/C conservan `internal/proxy/socks5_stub.go`).
   2. `grep -c 'MAX_A=8900000' scripts/cross/build_matrix.sh` = **1** (el tope viejo era 4.194.304 B) y `size dist/botd-amd64 | awk 'NR==2{print $1+$2+$3}'` devuelve un valor **> 4.194.304** y **≤ 8.900.000**; `bash scripts/cross/build_matrix.sh` sale **0** con las 6 arquitecturas.

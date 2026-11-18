@@ -174,6 +174,7 @@ func (s *Server) serveConn(conn net.Conn) {
 }
 
 // handshake ejecuta greeting + RFC1929 + CONNECT y abre el stream. Las
+// bot-session malformado o caducado se rechaza antes de tocar el nodo.
 // causas de rechazo del bot-session son tipadas:
 //   - usuario malformado o ts > 30 s (401 interno): rechazados aqui, el
 //     contador de streams H2 no sube (T-0601 AC3, T-0602 AC2).
@@ -188,7 +189,7 @@ func (s *Server) handshake(conn net.Conn) (*session, error) {
 		return nil, err
 	}
 	if ver != socksVersion {
-		return nil, errors.New("proxy: version SOCKS != 5")
+		return nil, ErrTokenMalformed
 	}
 	nm, err := r.ReadByte()
 	if err != nil {
