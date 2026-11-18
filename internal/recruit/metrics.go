@@ -67,8 +67,12 @@ func (s *Store) Snapshot(ctx context.Context, h Health) Snapshot {
 		SELECT count(*) FROM recruit_candidates
 		 WHERE state IN ('staging','enrolling')
 		    OR (state = 'enrolled' AND node_id IS NULL)`))
+	// Exito por candidato, no por intento: lo que dice el SLO es si el
+	// embudo produce ganadores, y un reintento que ya gano no lo baja.
 	sn.Socks5SuccessRate = s.ratio(ctx, `
-		SELECT count(*) FILTER (WHERE ok)::numeric, count(*)::numeric FROM recruit_socks5_checks`, true)
+		SELECT count(DISTINCT candidate_id) FILTER (WHERE ok)::numeric,
+		       GREATEST(count(DISTINCT candidate_id), 1)::numeric
+		  FROM recruit_socks5_checks`, true)
 	sn.NodeLeave24h = s.ratio(ctx, `
 		SELECT count(*) FILTER (WHERE left_at > now() - interval '24 hours')::numeric,
 		       GREATEST(count(*), 1)::numeric FROM leaves`, false)
