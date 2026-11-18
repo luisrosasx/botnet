@@ -112,6 +112,6 @@ verify` deje fila `ok`. Hoy la seccion `socks5` del gate sigue en 0/20.
 ## Gateway vivo en el VPS (2026-11-18)
 
 `botnet-gw --serve --socks5-listen 127.0.0.1:1080` corriendo; el saludo SOCKS5 responde **0502**.
-Con esto el frente existe en el servidor. Falta unidad systemd (hoy `nohup`) y, para la
-verificacion por nodo, un agente escuchando en cada uno (o un doble) que `botctl recruit verify`
-pueda atravesar.
+Con esto el frente existe en el servidor. **Ya con unidad systemd** (`botnet-gw.service`, activa y
+habilitada, saludo 0502). Falta para la verificacion por nodo un agente escuchando en cada uno
+(o un doble) que `botctl recruit verify` pueda atravesar.

