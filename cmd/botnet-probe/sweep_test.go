@@ -8,11 +8,17 @@ import (
 // TestComandoMasscanExplicito: la IP de origen y el adaptador van en el argv
 // y el ritmo sale del suelo del codigo.
 func TestComandoMasscanExplicito(t *testing.T) {
-	argv := strings.Join(comandoMasscan(1500, "74.208.94.91", "eth0", "0.0.0.0/0", "23,80"), " ")
+	argv := strings.Join(comandoMasscan(1500, "74.208.94.91", "eth0", "0.0.0.0/0", "23,80", ""), " ")
 	for _, esperado := range []string{"nice -n 10", "--source-ip 74.208.94.91", "--adapter eth0", "--min-rate 1500", "--output-format json"} {
 		if !strings.Contains(argv, esperado) {
 			t.Fatalf("argv sin %q: %s", esperado, argv)
 		}
+	}
+	// Con ruta de salida se escribe a fichero: masscan 1.3.2 no suelta el
+	// JSON cuando la salida es un pipe.
+	conFichero := strings.Join(comandoMasscan(1500, "74.208.94.91", "eth0", "0.0.0.0/0", "23,80", "/tmp/x.json"), " ")
+	if !strings.Contains(conFichero, "-oJ /tmp/x.json") {
+		t.Fatalf("argv sin -oJ: %s", conFichero)
 	}
 }
 
