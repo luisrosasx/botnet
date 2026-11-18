@@ -117,16 +117,16 @@ verificación que rechaza una firma alterada en un bit, `botctl status` con asse
 | Tasks en DONE | `grep -h 'Estado:\*\* DONE' docs/blueprint/TASKS/*.md \| wc -l` | 102 |
 | Tasks bloqueadas | `grep -h 'Estado:\*\* BLOCKED' docs/blueprint/TASKS/*.md \| wc -l` | 0 |
 | Criterios de aceptación | `grep -rhE '^\s+[0-9]+\. ' docs/blueprint/TASKS/*.md | wc -l` | 306 |
-| Criterios PASS | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}PASS' docs/verification/*.md | wc -l` | 364 |
+| Criterios PASS | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}PASS' docs/verification/*.md | wc -l` | 368 |
 | Criterios FAIL | `grep -rhE '^\| T-[0-9]{4} \| AC[0-9]+ \| \*{0,2}FAIL' docs/verification/*.md \| wc -l` | 0 |
-| Ficheros Go | `find . -name '*.go' -not -path './.git/*' | wc -l` | 297 |
-| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + | wc -l` | 43843 |
-| Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 473 |
+| Ficheros Go | `find . -name '*.go' -not -path './.git/*' | wc -l` | 299 |
+| Líneas de Go | `find . -name '*.go' -not -path './.git/*' -exec cat {} + | wc -l` | 44117 |
+| Funciones de test | `grep -rh '^func Test' --include='*_test.go' . \| wc -l` | 475 |
 | Paquetes Go | `go list ./... \| wc -l` | 47 |
 | Informes de verificación | `ls docs/verification/*.md \| wc -l` | 17 |
 | Runbooks | `ls docs/runbooks/*.md \| wc -l` | 22 |
 | Migraciones | `ls migrations/*.sql \| wc -l` | 10 |
-| Commits | `git rev-list --count HEAD` | 46 |
+| Commits | `git rev-list --count HEAD` | 47 |
 | Ficheros versionados | `git ls-files | wc -l` | 607 |
 | Entradas sin trackear | `git status --short --untracked-files=all \| wc -l` | 0 |
 

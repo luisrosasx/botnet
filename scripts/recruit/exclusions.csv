@@ -1,0 +1,13 @@
+kind,pattern,category,note
+prefix,74.208.94.0/24,propio,nuestro VPS no se escanea a si mismo
+asn,8560,propio,IONOS: origen
+prefix,198.51.100.0/24,banco,fixture banco
+prefix,203.0.113.128/25,sanidad,fixture sanidad
+prefix,192.0.2.0/24,gobierno,fixture gobierno
+asn,64500,escaner,ASN de escaneres conocidos
+asn,64501,cert,CERT de referencia
+ptr_regex,^.*univ\..*$,gobierno,universidades por PTR
+ptr_regex,^.*\.gob\.es$,gobierno,dominio publico
+ptr_regex,^.*honeypot.*$,honeypot,trampas con nombre
+honeypot,cowrie,honeypot,cowrie por defecto
+honeypot,dionaea,honeypot,dionaea por defecto

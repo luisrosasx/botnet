@@ -63,6 +63,15 @@ func run() error {
 	if flag.Arg(0) == "migrate" {
 		return runMigrate()
 	}
+	if flag.Arg(0) == "load-exclusions" {
+		// Los flags tras el subcomando no los ve el flag.Parse global.
+		fs := flag.NewFlagSet("load-exclusions", flag.ContinueOnError)
+		csv := fs.String("csv", "", "CSV de exclusiones (kind,pattern,category,note)")
+		if err := fs.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		return runLoadExclusions(*csv)
+	}
 	if *cfgPath != "" {
 		// La configuracion vive en variables de entorno; el fichero solo
 		// fija el DSN si existe, para el despliegue.
@@ -170,6 +179,25 @@ func masscanAvailable() bool {
 	}
 	_, err = os.Stat("/usr/local/bin/masscan")
 	return err == nil
+}
+
+// runLoadExclusions carga la lista de exclusiones (bancos, gobierno,
+// sanidad, escaneres, CERTs y trampas).
+func runLoadExclusions(ruta string) error {
+	if ruta == "" {
+		return fmt.Errorf("%s load-exclusions: falta --csv", name)
+	}
+	st, err := recruit.Open(os.Getenv("DATABASE_URL"), 4)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	n, err := st.CargarExclusions(context.Background(), ruta)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("exclusiones cargadas=%d\n", n)
+	return nil
 }
 
 func runMigrate() error {

@@ -41,10 +41,12 @@ func ejecutarBanner(ctx context.Context, rutaJSON string, dryRun bool) error {
 	// ParseZgrab2Output descarta los success sin banner; aqui hacen falta
 	// igual porque son el caso `no_banner` que se prueba. Se miran aparte.
 	sinBannerIP := map[string]bool{}
+	ptrDe := map[string]string{}
 	if b, err := os.ReadFile(rutaJSON); err == nil {
 		var doc map[string]struct {
 			Status string `json:"status"`
 			Data   struct {
+				Ptr    string `json:"ptr"`
 				Result struct {
 					IP   string `json:"ip"`
 					Port int    `json:"port"`
@@ -56,6 +58,9 @@ func ejecutarBanner(ctx context.Context, rutaJSON string, dryRun bool) error {
 		}
 		if json.Unmarshal(b, &doc) == nil {
 			for _, e := range doc {
+				if e.Data.Ptr != "" {
+					ptrDe[e.Data.Result.IP] = e.Data.Ptr
+				}
 				if e.Status == "success" && strings.TrimSpace(e.Data.Result.Data.Banner) == "" && e.Data.Result.IP != "" {
 					sinBannerIP[e.Data.Result.IP] = true
 				}
@@ -80,7 +85,7 @@ func ejecutarBanner(ctx context.Context, rutaJSON string, dryRun bool) error {
 			return err
 		}
 	}
-	var conBanner int
+	var conBanner, excluidos int
 	sinBanner := len(sinBannerIP)
 	for _, g := range grabs {
 		id, err := st.CandidatoPorIP(ctx, g.IP, g.Port)
@@ -94,6 +99,14 @@ func ejecutarBanner(ctx context.Context, rutaJSON string, dryRun bool) error {
 				return err
 			}
 			sinBanner++
+			continue
+		}
+		// Segunda pasada de exclusion: ahora se conoce el PTR.
+		if motivo, err := st.Coincide(ctx, g.IP, ptrDe[g.IP]); err == nil && motivo != "" {
+			if err := st.Excluir(ctx, id, motivo, "probe"); err != nil {
+				return err
+			}
+			excluidos++
 			continue
 		}
 		tipo, _, modelo := discovery.Classify(g.Banner)

@@ -35,7 +35,7 @@ created: 2026-11-17
 
 ### T-1703 — Exclusión doble desde `exclusions.csv` con categoría `honeypot`
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestCargaYCoincide|TestExcluir"` y barrido/banner sobre fixture; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `./bin/botnet-recruit load-exclusions --csv testdata/recruit/exclusions.csv` sale **0** y `psql -tAc "SELECT count(*) FROM recruit_exclusions"` ≥ **10**, con `psql -tAc "SELECT count(DISTINCT category) FROM recruit_exclusions"` ≥ **5** (cubriendo `banco`, `gobierno`, `sanidad`, `escaner`, `cert`, `propio`, `honeypot`) y `psql -tAc "SELECT count(*) FROM recruit_exclusions WHERE kind='ptr_regex'"` ≥ **1** con la regex del blueprint §7 (`grep -c 'univ' scripts/recruit/exclusions.csv` = **1**).
   2. La exclusión se aplica **dos veces** en el ciclo de vida: `psql -tAc "SELECT count(*) FROM recruit_candidate_events WHERE to_state='excluded'"` ≥ **1** por PTR del fixture y un candidato que nace sano pero cuyo PTR casa antes de `assessed` queda `excluded` con `fail_reason='excluded'` (2/2 casos del fixture `testdata/recruit/exclusions.csv`).
