@@ -221,10 +221,12 @@ if quiere gates; then
            "scripts/check-implementation.sh" \
            "scripts/check-field-closure.sh --strict" "scripts/metrics_smoke.sh"; do
     if [ "$MODO" = "fixture" ]; then continue; fi
+    # El log del gate que cae se queda en /tmp: sin el, un rojo de esta seccion
+    # solo dice "1 en rojo" y hay que repetir la corrida entera para verlo.
+    log="/tmp/recruit-gate-$(basename "$g" .sh).log"
     # shellcheck disable=SC2086
-    bash $g >/tmp/recruit_gate_$$.log 2>&1 || { gc=$((gc+1)); rojos="$rojos $(basename "$g")"; }
+    bash $g >"$log" 2>&1 || { gc=$((gc+1)); rojos="$rojos $(basename "$g")(/tmp/$(basename "$log"))"; }
   done
-  rm -f /tmp/recruit_gate_$$.log
   [ "$gc" -eq 0 ] && ok "gates: plan_anterior=0 rojos" || bad "gates: $gc en rojo:$rojos"
 fi
 
