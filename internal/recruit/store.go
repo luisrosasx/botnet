@@ -664,3 +664,73 @@ func (s *Store) MarcarCredFallida(ctx context.Context, id int64, protocolo strin
 		 WHERE candidate_id = $1`, id, protocolo, idx)
 	return err
 }
+
+// MarcarEntrega deja el candidato en `staging` con su evento, o lo descarta
+// con el motivo que diga la politica de destino.
+func (s *Store) MarcarEntrega(ctx context.Context, id int64, estado, motivo, actor string) error {
+	var desde string
+	if err := s.db.QueryRowContext(ctx, `SELECT state FROM recruit_candidates WHERE candidate_id=$1`, id).Scan(&desde); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates
+		   SET state=$2, fail_reason=NULLIF($3,''), lease_owner=NULL, lease_expires_at=NULL, updated_at=now()
+		 WHERE candidate_id = $1`, id, estado, motivo); err != nil {
+		return err
+	}
+	var seq int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(max(seq),0)+1 FROM recruit_candidate_events WHERE candidate_id=$1`, id).Scan(&seq); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidate_events (candidate_id, seq, from_state, to_state, reason, actor)
+		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6)`, id, seq, desde, estado, motivo, actor)
+	return err
+}
+
+// CandidatosParaEntrega lista los assessed con su clase y protocolo.
+func (s *Store) CandidatosParaEntrega(ctx context.Context) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT candidate_id FROM recruit_candidates WHERE state='assessed'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// DBQueryRow expone una lectura suelta para los workers.
+func (s *Store) DBQueryRow(ctx context.Context, q string, args ...any) *sql.Row {
+	return s.db.QueryRowContext(ctx, q, args...)
+}
+
+// MarcarRollback retira el nodo y deja escrito que se desinstalo: el evento
+// lleva `uninstall=ok`, que es la prueba de que no queda software ajeno.
+func (s *Store) MarcarRollback(ctx context.Context, id int64, actor string) error {
+	var desde string
+	if err := s.db.QueryRowContext(ctx, `SELECT state FROM recruit_candidates WHERE candidate_id=$1`, id).Scan(&desde); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_candidates SET state='rolled_back', updated_at=now() WHERE candidate_id=$1`, id); err != nil {
+		return err
+	}
+	var seq int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(max(seq),0)+1 FROM recruit_candidate_events WHERE candidate_id=$1`, id).Scan(&seq); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO recruit_candidate_events (candidate_id, seq, from_state, to_state, reason, actor)
+		VALUES ($1,$2,$3,'rolled_back','uninstall=ok',$4)`, id, seq, desde, actor)
+	return err
+}

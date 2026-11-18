@@ -53,6 +53,9 @@ Uso:
              a rc y luego a reboot segun la capacidad del objetivo.
   --data     directorio de estado del agente (clase C: /data/botd).
   --bin      binario a instalar; por defecto dist/botd-<arch>.
+  --inject-key   instala la clave publica del reclutador en authorized_keys
+                 del nodo (transporte ssh_key; sshpass si no hay clave).
+  --uninstall    retira el agente y sus artefactos; idempotente.
   --dry      imprime los comandos que ejecutaria, no toca nada.
   --json     salida JSON (solo el JSON por stdout).
   --help     esta ayuda.
@@ -75,6 +78,7 @@ die2() { printf 'bootstrap: %s\n' "$*" >&2; exit 2; }
 die3() { printf 'bootstrap: %s\n' "$*" >&2; exit 3; }
 
 ARCH="" TARGET="local" SSH="" PERSIST="auto" DATA="/data/botd" BIN=""
+INJECT_KEY=0 UNINSTALL=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -90,6 +94,8 @@ while [ $# -gt 0 ]; do
     --data)    [ -n "${2:-}" ] || die2 "--data sin valor"; DATA="$2"; shift 2; continue ;;
     --data=*)  DATA="${1#*=}" ;;
     --bin)     [ -n "${2:-}" ] || die2 "--bin sin valor"; BIN="$2"; shift 2; continue ;;
+    --inject-key) INJECT_KEY=1; shift; continue ;;
+    --uninstall)  UNINSTALL=1; shift; continue ;;
     --bin=*)   BIN="${1#*=}" ;;
     --dry)     DRY=1 ;;
     --json)    JSON=1 ;;
@@ -99,6 +105,7 @@ while [ $# -gt 0 ]; do
 done
 
 # --- validacion de argumentos (exit 2) --------------------------------
+if [ "$UNINSTALL" = 1 ] && [ -z "$ARCH" ]; then ARCH=amd64; fi
 case " $ARCHS " in
   *" $ARCH "*) : ;;
   *) die2 "--arch obligatorio y debe ser uno de: $ARCHS (recibido: '${ARCH:-<vacio>}')" ;;
@@ -110,6 +117,42 @@ case "$TARGET" in
 esac
 
 [ "$TARGET" != ssh ] || [ -n "$SSH" ] || die2 "--target ssh necesita --ssh <usuario@host>"
+
+# --- desinstalacion idempotente (T-1705 AC5): retirar sin dejar software
+# desconocido en casa ajena. Dos pasadas seguidas salen 0 igual.
+if [ "$UNINSTALL" = 1 ]; then
+  for f in "$DATA/botd.service" "$DATA/rc.local.d-botd" "$DATA/crontab" "$DATA/botd" "$DATA/manifest.json"; do
+    if [ "$DRY" = 1 ]; then
+      echo "rm -f $f"
+    else
+      rm -f "$f" 2>/dev/null || true
+    fi
+  done
+  if [ "$DRY" = 0 ] && [ -d "$DATA" ]; then
+    rmdir "$DATA" 2>/dev/null || true
+    # Unidades de sistema y cron del host, si las hubiera.
+    rm -f /etc/systemd/system/botd.service 2>/dev/null || true
+    if command -v crontab >/dev/null 2>&1; then
+      crontab -l 2>/dev/null | grep -v 'botd' | crontab - 2>/dev/null || true
+    fi
+  fi
+  echo "uninstall data=$DATA ok"
+  exit 0
+fi
+
+# --- inyeccion de la clave del reclutador (T-1705 AC1). El transporte se
+# declara siempre; con RECRUIT_SSH_KEY va por clave y sin ella por sshpass.
+if [ "$INJECT_KEY" = 1 ]; then
+  if [ -n "${RECRUIT_SSH_KEY:-}" ]; then
+    TRANSPORT=ssh_key
+  else
+    TRANSPORT=sshpass
+  fi
+  echo "transport=$TRANSPORT"
+  if [ "$DRY" = 0 ] && [ "$TRANSPORT" = ssh_key ] && [ -n "$SSH" ]; then
+    ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH"       "mkdir -p ~/.ssh && chmod 700 ~/.ssh && grep -qxF '$(cat "$RECRUIT_SSH_KEY")' ~/.ssh/authorized_keys 2>/dev/null || echo '$(cat "$RECRUIT_SSH_KEY")' >> ~/.ssh/authorized_keys"       || die2 "no se pudo inyectar la clave en $SSH"
+  fi
+fi
 
 if [ "$PERSIST" = auto ]; then PERSIST=systemd; fi
 case " $PERSIST_ALL " in

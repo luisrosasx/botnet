@@ -1,0 +1,3 @@
+{"ip": "198.18.3.1", "port": 80, "cred_protocol": "ssh", "ssh_ok": true, "overlay_free_kb": 20480}
+{"ip": "198.18.3.2", "port": 80, "cred_protocol": "http", "ssh_ok": false, "overlay_free_kb": 20480}
+{"ip": "198.18.3.3", "port": 80, "cred_protocol": "ssh", "ssh_ok": true, "overlay_free_kb": 1024}

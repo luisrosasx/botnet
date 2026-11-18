@@ -45,7 +45,11 @@ func run() error {
 		stageB  = flagStr("stage", "")
 		bannerJ = flagStr("banner-json", "")
 		credJ   = flagStr("cred-json", "")
+		delivJ  = flagStr("deliver-json", "")
 	)
+	if stageB == "deliver" {
+		return ejecutarDeliver(context.Background(), delivJ, dryRun)
+	}
 	if stageB == "cred" {
 		return ejecutarCred(context.Background(), credJ, dryRun)
 	}

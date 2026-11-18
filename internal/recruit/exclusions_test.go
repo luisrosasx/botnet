@@ -69,3 +69,23 @@ func TestExcluirEsTipadoEIdempotente(t *testing.T) {
 		t.Fatalf("estado=%s motivo=%s", estado, motivo)
 	}
 }
+
+// TestRollbackEscribeUninstall: el rollback deja el evento con uninstall=ok.
+func TestRollbackEscribeUninstall(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	seedCandidates(t, st, 1)
+	var id int64
+	st.db.QueryRow(`SELECT candidate_id FROM recruit_candidates LIMIT 1`).Scan(&id)
+	if _, err := st.db.Exec(`UPDATE recruit_candidates SET state='enrolled' WHERE candidate_id=$1`, id); err != nil {
+		t.Fatalf("estado: %v", err)
+	}
+	if err := st.MarcarRollback(ctx, id, "probe"); err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+	var n int
+	st.db.QueryRow(`SELECT count(*) FROM recruit_candidate_events WHERE to_state='rolled_back' AND reason LIKE 'uninstall=%'`).Scan(&n)
+	if n != 1 {
+		t.Fatalf("eventos uninstall=%d (quiero 1)", n)
+	}
+}

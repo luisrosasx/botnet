@@ -64,7 +64,7 @@ created: 2026-11-17
 
 ### T-1705 — Entrega: `authorized_keys`, fallback `sshpass`, `no_delivery` y `--uninstall`
 - **Épica:** EP-17
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `--stage deliver` sobre fixture, `--uninstall` x2 y `go test -run TestRollbackEscribeUninstall`; evidencia en `docs/verification/EP-17.md`
 - **Criterios de aceptación:**
   1. `scripts/field/bootstrap.sh --inject-key --dry-run` imprime `transport=ssh_key` (`grep -c 'transport=ssh_key'` = **1**) y, con `RECRUIT_SSH_KEY` ausente, imprime `transport=sshpass` (1/1). Tras la inyección real en el router de ensayo: `ssh -o BatchMode=yes -o ConnectTimeout=5 "$RECRUIT_SSH_USER"@$ROUTER true; echo exit=$?` = **0** (hoy **255**, A1-02).
   2. La ruta la elige `cred_protocol`: con `cred_protocol='http'` y sin SSH accesible, el candidato queda `state='discarded'` y `fail_reason='no_delivery'` (1/1); con `'ssh'` pasa `assessed → staging` con una fila en `recruit_candidate_events` (1/1).
