@@ -126,7 +126,7 @@ verificación que rechaza una firma alterada en un bit, `botctl status` con asse
 | Informes de verificación | `ls docs/verification/*.md \| wc -l` | 17 |
 | Runbooks | `ls docs/runbooks/*.md \| wc -l` | 22 |
 | Migraciones | `ls migrations/*.sql \| wc -l` | 10 |
-| Commits | `git rev-list --count HEAD` | 29 |
+| Commits | `git rev-list --count HEAD` | 46 |
 | Ficheros versionados | `git ls-files | wc -l` | 607 |
 | Entradas sin trackear | `git status --short --untracked-files=all \| wc -l` | 0 |
 
