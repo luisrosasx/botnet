@@ -59,18 +59,25 @@ func cfgDespliegue(clave string) string {
 }
 
 // comandoMasscan arma el argv. `pps` es el ritmo de la ventana; `ips` el
-// alcance; `ports` la lista.
+// alcance; `ports` la lista. Con la interfaz en /32 (VPS de proveedor) hace
+// falta el MAC del router: sin el, masscan no sabe a quien entregar el SYN.
 func comandoMasscan(pps int, sourceIP, adapter, ips, ports string) []string {
-	return []string{
-		"nice", "-n", "10", "masscan",
+	argv := []string{
+		"nice", "-n", "10",
+		"masscan",
 		"--source-ip", sourceIP,
 		"--adapter", adapter,
+	}
+	if mac := cfgDespliegue("RECRUIT_ROUTER_MAC"); mac != "" {
+		argv = append(argv, "--router-mac", mac)
+	}
+	return append(argv,
 		"--rate", strconv.Itoa(pps),
 		"--min-rate", strconv.Itoa(pps),
 		"-p", ports,
 		"--output-format", "json",
 		ips,
-	}
+	)
 }
 
 // cohorte parte un total de SYN en tandas de `pps*segundos`. Devuelve el
@@ -208,7 +215,7 @@ func ejecutarSweepLive(ctx context.Context, limit, segundos int) error {
 	if err != nil {
 		return fmt.Errorf("masscan: %w: %s", err, strings.TrimSpace(errb.String()))
 	}
-	cands, err := discovery.ParseMasscanNDJSON(bytes.NewReader(out))
+	cands, err := normCandidatos(out)
 	if err != nil {
 		return err
 	}
@@ -218,6 +225,26 @@ func ejecutarSweepLive(ctx context.Context, limit, segundos int) error {
 	fmt.Printf("sweep_live: candidatos=%d concedido=%d ritmo=%d pps segundos=%d\n",
 		len(cands), concedido, ritmo, segundos)
 	return nil
+}
+
+// normCandidatos acepta las dos formas en que masscan escribe hallazgos: la
+// lista JSON con corchetes (la de siempre, `--output-format json`) y el
+// NDJSON linea a linea. El parser del embudo solo entiende NDJSON.
+func normCandidatos(out []byte) ([]discovery.Candidate, error) {
+	body := bytes.TrimSpace(out)
+	if len(body) > 0 && body[0] == '[' {
+		var arr []json.RawMessage
+		if err := json.Unmarshal(body, &arr); err != nil {
+			return nil, fmt.Errorf("masscan json: %w", err)
+		}
+		var buf bytes.Buffer
+		for _, r := range arr {
+			buf.Write(r)
+			buf.WriteByte('\n')
+		}
+		body = buf.Bytes()
+	}
+	return discovery.ParseMasscanNDJSON(bytes.NewReader(body))
 }
 
 // ingerirCandidatos es el unico camino de entrada al embudo: fixture y red
