@@ -21,7 +21,7 @@ created: 2026-11-17
 
 ### T-1902 — `recruit.slice` y `botnet-recruit.service` con techo, watchdog y `--db-pool=2`
 - **Épica:** EP-19
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: 8 props de unidad, cgroup 300 %, 53300=0 y 2 conexiones; evidencia en docs/verification/EP-19.md
 - **Criterios de aceptación:**
   1. `systemctl show -p Slice botnet-recruit` = `Slice=recruit.slice` y `systemctl cat botnet-recruit.service | grep -cE '^(StartLimitIntervalSec=0|WatchdogSec=30|Restart=always|RestartSec=5|EnvironmentFile=/etc/botnet-recruit/env|AmbientCapabilities=CAP_NET_RAW|ProtectSystem=strict|KillMode=control-group)'` = **8**.
   2. Techo real en el cgroup: `systemctl show -p CPUQuota,MemoryMax,TasksMax recruit.slice` da `300%`, `1610612736` (1536 M) y `256`; la suma de cuotas por unidad no lo pasa: `150 + 3×50 = 300 %` y `512 + 3×320 = 1472 MB` ≤ 1536 M (A2-08 — el plan de P1 anunciaba 3,2 vCPU y eran 4,0).
