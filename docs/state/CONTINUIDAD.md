@@ -47,3 +47,16 @@ Escrito al acercarse el límite de contexto. Lo que hay y por dónde seguir.
 - `public_ip` se escribe en el alta y en el primer heartbeat (`MarkLive` + `c.IP()`).
 - Pendiente inmediato: desplegar la API al VPS para que el heartbeat escriba la IP,
   T-1904 AC2/AC4/AC5, EP-20 (gate con sabotajes) y EP-21 (20 nodos).
+
+## Medición real del gate (VPS, 2026-11-18)
+
+`bash check-recruit.sh` en el VPS: **FAIL (6)**. Desglose y causa:
+
+- `oleada 4` e `injertos=0`: el gate corre en `/root`, sin el repo. Necesita un checkout
+  (o ejecutarse desde la máquina de desarrollo apuntando al DSN del VPS).
+- `tasks DONE=0/0`: igual, sin `docs/recruit/TASKS`.
+- `socks5: 0 nodos con IP propia`: **no hay flota**; 0 de 20. Es el hueco grande.
+- `healthcheck`: **ok** (el servicio responde).
+
+Para que el gate mida de verdad: clonar/sincronizar el repo en el VPS y correrlo desde ahí,
+o correrlo desde casa con `DATABASE_URL` apuntando al VPS.
