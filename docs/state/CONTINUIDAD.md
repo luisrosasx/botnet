@@ -146,3 +146,9 @@ Reconfirmado: **PASS** en oleadas, injertos, AC, 20 nodos con IP propia, lazo, e
 al final de las pruebas; reiniciado y health 200.
 Recordatorio de higiene: el gate necesita `DATABASE_URL` en el entorno y el script copiado por
 `scp` viaja con CRLF (`sed -i "s/\r$//"`).
+
+## Gate: `--list` y `--map` (2026-11-18)
+
+Anadidos: `--list` enumera las 6 secciones y `--map` dice de donde sale cada una. El gate sigue
+exigiendo `DATABASE_URL` aunque sea para listar (se puede mover la asercion despues).
+Estado del objetivo sin cambios: un unico rojo, `tasks DONE=28/39`.

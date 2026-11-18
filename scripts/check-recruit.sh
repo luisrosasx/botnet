@@ -10,6 +10,23 @@ cd "$ROOT"
 # shellcheck source=scripts/env.sh
 source scripts/env.sh >/dev/null 2>&1 || true
 : "${DATABASE_URL:?DATABASE_URL requerido}"
+case "${1:-}" in
+  --list) printf 'oleadas
+tareas
+socks5
+lazo
+evidencia
+servicio
+'; exit 0 ;;
+  --map)  printf 'oleadas=docs/recruit/w1..w4
+tareas=docs/recruit/TASKS
+socks5=recruit_socks5_checks
+lazo=recruit_planner_ticks
+evidencia=docs/verification
+servicio=healthz9110
+'; exit 0 ;;
+esac
+
 
 ONLY=""
 [ "${1:-}" = "--only" ] && ONLY="${2:-}"
