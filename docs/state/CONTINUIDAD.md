@@ -138,3 +138,11 @@ secciones `socks5` y `servicio` (1 rojo, 0 al revertir).
 
 Aviso: al copiar el script por `scp` viaja con CRLF y bash falla en la linea 13; hay que
 `s sed -i "s/\r$//"` tras copiarlo (o arreglar el .gitattributes para scripts nuevos).
+
+## Gate: sigue con un solo rojo (2026-11-18)
+
+Reconfirmado: **PASS** en oleadas, injertos, AC, 20 nodos con IP propia, lazo, evidencia
+(19 informes) y healthcheck. **Unico FAIL: `tasks DONE=28/39`**. El orquestador se habia parado
+al final de las pruebas; reiniciado y health 200.
+Recordatorio de higiene: el gate necesita `DATABASE_URL` en el entorno y el script copiado por
+`scp` viaja con CRLF (`sed -i "s/\r$//"`).
