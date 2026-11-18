@@ -92,3 +92,10 @@ Para el enrol hay que: generar un ticket firmado con el mismo `proto` (utilidad 
 p. ej. `scripts/recruit/genticket`), insertarlo o presentarlo, y enviar el cuerpo con `csr`
 y `consent_at` (el CSR ya se generó con openssl y el cuerpo con esas claves funciona:
 llegó al validador y solo falló el ticket).
+
+## Enrol: siguiente paso exacto
+
+`scripts/recruit/genticket` ya firma con `proto.SignTicket`. Sigue en **403**, asi que hay que
+averiguar dos cosas antes de reintentar: (1) de que clave lee el servicio (`TicketSecret` puede
+venir de otro nombre de variable, no de `RECRUIT_TICKET_SECRET`), y (2) la columna real de
+`tickets` (el `INSERT ... (token_hash, exp)` fallo).
