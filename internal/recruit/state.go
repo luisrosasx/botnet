@@ -138,3 +138,20 @@ func NextRateClass(ctx context.Context, st *Store) (int, error) {
 	}
 	return hour, nil
 }
+
+// SiguienteEstado es el avance del embudo cuando el ciclo salio bien.
+func SiguienteEstado(actual State) (State, bool) {
+	switch actual {
+	case StateSweeping:
+		return StateBannered, true
+	case StateBannered:
+		return StateAssessed, true
+	case StateAssessed:
+		return StateStaging, true
+	case StateStaging:
+		return StateEnrolling, true
+	case StateEnrolling:
+		return StateEnrolled, true
+	}
+	return "", false
+}

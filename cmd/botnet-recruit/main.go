@@ -167,8 +167,17 @@ func runMigrate() error {
 		return err
 	}
 	defer db.Close()
-	if err := migrations.Apply(db); err != nil {
-		return err
+	// El motor portable suelta dial-timeout: reintento acotado. Apply es
+	// idempotente por version y va bajo cerrojo advisory.
+	var err2 error
+	for i := 0; i < 5; i++ {
+		if err2 = migrations.Apply(db); err2 == nil {
+			break
+		}
+		time.Sleep(time.Duration(i+1) * 400 * time.Millisecond)
+	}
+	if err2 != nil {
+		return err2
 	}
 	fmt.Println("migrate: ok")
 	return nil

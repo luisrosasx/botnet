@@ -2,7 +2,9 @@ package recruit
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -398,4 +400,81 @@ func esReintentable(err error) bool {
 		}
 	}
 	return false
+}
+
+// jobKey es la clave de idempotencia de un intento: sha256 de
+// ip:port:stage:attempt. Repetir el complete no duplica el efecto.
+func jobKey(ip string, port int, stage string, attempt int) string {
+	if attempt < 1 {
+		attempt = 1
+	}
+	h := sha256.Sum256([]byte(fmt.Sprintf("%s:%d:%s:%d", ip, port, stage, attempt)))
+	return hex.EncodeToString(h[:])
+}
+
+// ClaimJobs reclama y deja la fila de trabajo con su clave de idempotencia.
+func (s *Store) ClaimJobs(ctx context.Context, stage, worker string, limit int) ([]Claimed, error) {
+	out, err := s.Claim(ctx, stage, worker, limit)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		c := &out[i]
+		attempt := c.Attempt
+		if attempt < 1 {
+			attempt = 1
+		}
+		if _, err := s.db.ExecContext(ctx, `
+			INSERT INTO recruit_jobs (candidate_id, stage, attempt, idempotency_key, worker, claimed_at)
+			VALUES ($1,$2,$3,$4,$5,now())
+			ON CONFLICT (idempotency_key) DO UPDATE
+			   SET claimed_at = now(), worker = EXCLUDED.worker, finished_at = NULL
+			 WHERE recruit_jobs.finished_at IS NOT NULL`,
+			c.CandidateID, stage, attempt, jobKey(c.IP, c.Port, stage, attempt), worker); err != nil {
+			return out, err
+		}
+	}
+	return out, nil
+}
+
+// Complete cierra un intento. Con la clave ya cerrada no hace nada (200 y
+// cero eventos nuevos); sin lease vivo no escribe.
+func (s *Store) Complete(ctx context.Context, c Claimed, outcome, reason, actor string) (bool, error) {
+	switch outcome {
+	case "ok", "fail", "timeout", "skipped":
+	default:
+		return false, fmt.Errorf("recruit: outcome invalido %q", outcome)
+	}
+	key := jobKey(c.IP, c.Port, c.Stage, c.Attempt)
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE recruit_jobs SET finished_at = now(), outcome = $2
+		 WHERE idempotency_key = $1 AND finished_at IS NULL`, key, outcome)
+	if err != nil {
+		return false, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return false, nil // ya estaba cerrado: idempotente
+	}
+	var actual State
+	if err := s.db.QueryRowContext(ctx, `SELECT state FROM recruit_candidates WHERE candidate_id=$1`, c.CandidateID).Scan(&actual); err != nil {
+		return true, err
+	}
+	to := StateDeferred
+	switch {
+	case reason == "burned":
+		to = StateBurned
+	case reason == "discarded":
+		to = StateDiscarded
+	case outcome == "ok":
+		if sig, ok := SiguienteEstado(actual); ok {
+			to = sig
+		}
+	}
+	if to == StateDeferred && reason == "" {
+		reason = "no_answer"
+	}
+	if to == StateDeferred && outcome == "skipped" && reason == "no_answer" {
+		reason = "no_budget"
+	}
+	return true, s.TransitionOutcome(ctx, c.CandidateID, c.LeaseOwner, c.LeaseToken, to, reason, actor, outcome)
 }

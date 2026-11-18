@@ -62,7 +62,7 @@ created: 2026-11-17
 
 ### T-1605 — `/v1/work/{claim,complete}` y `/v1/control/{pause,resume}` con fallback del worker
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestClaimYComplete|TestCompleteIdempotente|TestPausaNoReparte"` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. `curl -s -X POST 127.0.0.1:9110/v1/work/claim -d '{"stage":"sweep","worker":"probe-1","limit":5}'` devuelve **5** `candidate_id` con salida **200**, y el `complete` correspondiente deja `psql -tAc "SELECT finished_at IS NOT NULL, outcome FROM recruit_jobs WHERE worker='probe-1'"` = **t** con `outcome IN ('ok','fail','timeout','skipped')` (5/5).
   2. `complete` duplicado no duplica el efecto: repetir el mismo `idempotency_key` deja `psql -tAc "SELECT count(*) FROM recruit_jobs WHERE idempotency_key=$1"` = **1** y `count(*)` de eventos nuevos = **0**, con salida **200** (idempotencia por sha256 de `ip:port:stage:attempt`).

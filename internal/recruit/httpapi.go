@@ -3,6 +3,7 @@ package recruit
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -29,6 +30,7 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("/v1/control/pause", a.pause(true))
 	m.HandleFunc("/v1/control/resume", a.pause(false))
 	m.HandleFunc("/v1/work/claim", a.claim)
+	m.HandleFunc("/v1/work/complete", a.complete)
 	a.mux = m
 	return m
 }
@@ -150,11 +152,53 @@ func (a *API) claim(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	items, err := a.Store.Claim(ctx, body.Stage, body.Worker, body.Limit)
+	items, err := a.Store.ClaimJobs(ctx, body.Stage, body.Worker, body.Limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(claimResp{Stage: body.Stage, Worker: body.Worker, Items: items})
+}
+
+// complete cierra un intento. Un duplicado responde 200 y no duplica nada.
+func (a *API) complete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		CandidateID int64  `json:"candidate_id"`
+		IP          string `json:"ip"`
+		Port        int    `json:"port"`
+		Stage       string `json:"stage"`
+		Attempt     int    `json:"attempt"`
+		Outcome     string `json:"outcome"`
+		Reason      string `json:"reason"`
+		Worker      string `json:"worker"`
+		LeaseToken  int64  `json:"lease_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "json invalido", http.StatusBadRequest)
+		return
+	}
+	if body.CandidateID == 0 || body.Stage == "" || body.Outcome == "" {
+		http.Error(w, "candidate_id, stage y outcome obligatorios", http.StatusBadRequest)
+		return
+	}
+	if body.Attempt < 1 {
+		body.Attempt = 1
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	c := Claimed{CandidateID: body.CandidateID, IP: body.IP, Port: body.Port,
+		Stage: body.Stage, Attempt: body.Attempt, LeaseOwner: body.Worker,
+		LeaseToken: body.LeaseToken}
+	escribio, err := a.Store.Complete(ctx, c, body.Outcome, body.Reason, body.Worker)
+	if err != nil && !errors.Is(err, ErrLeaseStale) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"ok": true, "escribio": escribio})
 }
