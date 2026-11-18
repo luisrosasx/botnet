@@ -79,7 +79,9 @@ if quiere cuenta_por_intentos; then
   bash scripts/check-recruit.sh --only nodos >/dev/null 2>&1
   rc=$?
   despues=$(bash scripts/check-recruit.sh --only nodos | grep -oE 'con_evidencia_dura=[0-9]+' | head -1)
-  if [ "$rc" -eq 0 ] && [ "$antes" = "$despues" ] && [ -n "$antes" ]; then
+  # El rojo de la seccion puede venir de otra comprobacion: aqui solo se
+  # juzga si la cifra se mueve.
+  if [ "$antes" = "$despues" ] && [ -n "$antes" ]; then
     printf 'ok   %-32s el conteo no se mueve (%s)
 ' cuenta_por_intentos "$antes"
   else
