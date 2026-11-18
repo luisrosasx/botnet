@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-2101 — `wave close` y las 5 oleadas medibles en `recruit_waves` + bitácora
 - **Épica:** EP-21
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `botnet-recruit wave close --note="oleada N"` x5 idempotente y `bash scripts/check-state-doc.sh` con sabotaje de seccion; evidencia en `docs/verification/EP-21.md`
 - **Criterios de aceptación:**
   1. `./bin/botnet-recruit wave close --note="oleada N"` sale **0** y `psql -tAc "SELECT count(*) FROM recruit_waves WHERE state='cerrada'"` sube exactamente en **+1**; cerrar dos veces la misma oleada deja `count(*)` **sin cambio** y salida **0** (idempotente).
   2. `psql -tAc "SELECT count(*) FROM recruit_waves WHERE state='cerrada' AND promoted>0 AND verified>=1 AND closed_at IS NOT NULL"` = **5** al final del cierre (hoy la tabla no tiene filas) y `psql -tAc "SELECT count(*) FROM recruit_waves WHERE state='cerrada' AND closed_at <= started_at"` = **0** (A3-05).
@@ -36,7 +36,7 @@ created: 2026-11-17
 
 ### T-2103 — Evidencia fechada con `sha256` y ficheros `docs/verification/EP-15..21.md`
 - **Épica:** EP-21
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `sha256sum -c SHA256SUMS` de 7 evidencias y `bash scripts/check-implementation.sh` con sabotaje de fila PASS; evidencia en `docs/verification/EP-21.md`
 - **Criterios de aceptación:**
   1. `ls docs/verification/EP-1[5-9].md docs/verification/EP-2[0-1].md 2>/dev/null | wc -l | tr -d ' '` = **7** (un fichero por épica nueva) y cada uno contiene al menos una tabla con la cabecera `| Task | AC | Veredicto | Evidencia |`.
   2. Muestreo de tres tasks: `for t in T-1501 T-1803 T-2102; do grep -hE "^\| $t \| AC[0-9]+ \|" docs/verification/EP-*.md | grep -c PASS; done` devuelve **≥ 3** en las tres (cada task con ≥ 3 filas PASS, una por AC medido).
@@ -51,7 +51,7 @@ created: 2026-11-17
 
 ### T-2104 — Runbook `docs/runbooks/recruit.md` con operación, rollback y límites reales
 - **Épica:** EP-21
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: runbook con 10 secciones, `bash -n` de sus bloques y drill de rollback de 4 escalones ejecutado (43/43 revocados); evidencia en `docs/verification/EP-21.md`
 - **Criterios de aceptación:**
   1. `grep -cE '^## ' docs/runbooks/recruit.md` ≥ **6** con las secciones de arranque, pausa, rollback, revoque y desinstala, sabotajes del paraguas y límites del servicio.
   2. Todo comando del runbook es ejecutable: `awk '/^```bash/{f=1;next}/^```/{f=0}f' docs/runbooks/recruit.md > /tmp/rb.sh && bash -n /tmp/rb.sh; echo exit=$?` = **0** y `grep -c '^\$ ' docs/runbooks/recruit.md` ≥ **12**.
@@ -66,7 +66,7 @@ created: 2026-11-17
 
 ### T-2105 — Cierre: paraguas en 0, seis sabotajes en rojo y gates existentes en 0
 - **Épica:** EP-21
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/recruit/sabotage_recruit.sh` (6/6 muerden) y `bash scripts/check-recruit.sh` en 0; evidencia en `docs/verification/EP-21.md`
 - **Criterios de aceptación:**
   1. `bash scripts/check-recruit.sh; echo exit=$?` = **0** en el VPS con `comprobaciones=8` impreso y las **5** condiciones del objetivo listadas como `ok` en `--map` (0 condiciones sin comprobación).
   2. Cero falsos verdes: `bash scripts/recruit/sabotage_recruit.sh` imprime `sabotajes=6 fallan=6` y sale **0** (los 6: nodo fantasma, cuenta por intentos, SOCKS5 sin flota, puerta vaciada, `psql` fuera del PATH, servicio con instancias paradas); al terminar el script, `bash scripts/check-recruit.sh; echo exit=$?` vuelve a **0**.

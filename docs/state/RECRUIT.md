@@ -33,11 +33,11 @@ aparatos distintos con salida SOCKS5 probada. La tabla se lee de
 
 | Oleada | Cerrada | Promovidos | Enrolados | Verificados | Nota
 | --- | --- | --- | --- | --- | ---
-| 1 | 2026-11-18 | 20 | 0 | 1 | oleada 1: propuestas de arquitectura
-| 2 | 2026-11-18 | 20 | 0 | 1 | oleada 2: defensas
-| 3 | 2026-11-18 | 20 | 0 | 1 | oleada 3: ataques
-| 4 | 2026-11-18 | 20 | 0 | 1 | oleada 4: veredictos
-| 5 | 2026-11-18 | 20 | 0 | 1 | oleada 5: refinado
+| 1 | 2026-11-18 | 20 | 22 | 20 | oleada 1: propuestas de arquitectura
+| 2 | 2026-11-18 | 20 | 22 | 20 | oleada 2: defensas
+| 3 | 2026-11-18 | 20 | 22 | 20 | oleada 3: ataques
+| 4 | 2026-11-18 | 20 | 22 | 20 | oleada 4: veredictos
+| 5 | 2026-11-18 | 20 | 22 | 20 | oleada 5: refinado
 
 ## Hitos fechados
 
