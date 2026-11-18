@@ -6,7 +6,7 @@ created: 2026-11-17
 
 ### T-2001 — Gates previos: paridad `EPICS/` ↔ `docs/verification/` y `--strict` con evidencia
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/check-blueprint.sh` (paridad EP-99 + techo 201) y `bash scripts/check-field-closure.sh --strict` con sabotaje de fila PASS; evidencia en `docs/verification/EP-20.md`
 - **Criterios de aceptación:**
   1. `bash scripts/check-blueprint.sh; echo exit=$?` = **0** y la línea `ok epics=` muestra **≥ 21** épicas (`grep -c 'ok epics='` = **1**); el techo sigue mordiendo: con `TASK_COUNT` forzado a 201 la salida es **≠ 0** (hoy `-ge 14` y techo 200, G2 ya parcheado).
   2. Paridad nueva: `printf -- '---\nid: EP-99\n---\n' > docs/blueprint/EPICS/EP-99-paridad.md && bash scripts/check-blueprint.sh; echo exit=$?` = **≥ 1** con `EP-99` citado en la salida (`grep -c 'EP-99'` ≥ **1**), y `rm docs/blueprint/EPICS/EP-99-paridad.md && bash scripts/check-blueprint.sh; echo exit=$?` = **0** (sabotaje + reversión) — A3-10.
@@ -21,7 +21,7 @@ created: 2026-11-17
 
 ### T-2002 — Catálogo de métricas `botnet_recruit_*` con stdlib y valores vivos
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `RECRUIT_BIN=/usr/local/bin/botnet-recruit bash scripts/recruit/metrics_smoke_recruit.sh` (17 familias, contadores cableados, ratio 0.95 y `action=down` al 50 %); evidencia en `docs/verification/EP-20.md`
 - **Criterios de aceptación:**
   1. `curl -s 127.0.0.1:9110/metrics | grep -c '^botnet_recruit_'` ≥ **14** y las 6 familias del §10 están: `curl -s 127.0.0.1:9110/metrics | grep -cE '^botnet_recruit_(pps_target|pps_effective|orchestrator_tick_age_seconds|rate_class|paused|host_load1|rbl_listed|state_rows|queue_depth|enroll_backlog|socks5_success_ratio|node_leave_ratio_24h|claim_latency_ms|throttle_skips_total|lease_expired_total|budget_unavailable_total|pg_fatal_53300_total)'` ≥ **14**.
   2. Cableada, no declarada (A3-18): `curl -s 127.0.0.1:9110/metrics | awk '/^botnet_recruit_(throttle_skips_total|lease_expired_total|budget_unavailable_total)/{s+=$2}END{print (s>0)?1:0}'` = **1** tras correr un lote con 1 `skipped` y 1 lease vencido (hoy: 13 métricas pueden ser 3 escritas).
@@ -35,7 +35,7 @@ created: 2026-11-17
 
 ### T-2003 — `scripts/check-recruit.sh`: contrato de salida, preflight y `--only`/`--list`/`--map`
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/check-recruit.sh --list/--map/--fixture` y `PATH=/tmp/vacio … --only preflight` con `exit=2`; evidencia en `docs/verification/EP-20.md`
 - **Criterios de aceptación:**
   1. `grep -c '^set -euo pipefail' scripts/check-recruit.sh` = **1** y `grep -cE '^exit "\$FAIL"' scripts/check-recruit.sh` = **1**; la última línea estándar es `comprobaciones=N` con `N >= 5`: `bash scripts/check-recruit.sh | grep -oE 'comprobaciones=[0-9]+'` imprime **8** y una versión con `N=4` devuelve salida **≠ 0** (A3-07).
   2. `bash scripts/check-recruit.sh; echo exit=$?` devuelve **0** sin fallos y el **número exacto de fallos** con dos comprobaciones rotas a la vez (medido: `2`), no solo «rojo»; `--list` imprime las **8** comprobaciones (`preflight oleadas nodos socks5 servicio gates lazo evidencia`) y `--map` imprime **5** líneas condicion→comprobación (las 5 condiciones del objetivo).
@@ -50,7 +50,7 @@ created: 2026-11-17
 
 ### T-2004 — Comprobaciones `oleadas`, `nodos` y `socks5` con sus sabotajes
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/recruit/sabotage_recruit.sh` (nodo fantasma, cuenta por intentos, flota vacía) y `--only oleadas`; evidencia en `docs/verification/EP-20.md`
 - **Criterios de aceptación:**
   1. `oleadas`: la comprobación lee la tabla, no la bitácora — `psql -tAc "SELECT count(*) FROM recruit_waves WHERE state='cerrada' AND promoted>0 AND verified>=1 AND closed_at IS NOT NULL"` = **5** y `bash scripts/check-recruit.sh --only oleadas; echo exit=$?` = **0**; con una oleada menos (UPDATE de prueba) la salida es **≥ 1** y al revertir vuelve a **0** (sabotaje + reversión; hoy `check-blueprint.sh` sale 0 antes, durante y después de reclutar nada — A3-05).
   2. `nodos` con `count(DISTINCT node_id)`: la consulta de la comprobación incluye `JOIN nodes`, `n.status IN ('enrolled','live')`, `n.optout_at IS NULL` y el latido de `node_heartbeats` con `ts > now() - interval '15 min'`; con los 20 nodos puestos da **≥ 20** y `exit=0` (A3-01, A3-04).
@@ -65,7 +65,7 @@ created: 2026-11-17
 
 ### T-2005 — Comprobaciones `servicio`, `lazo`, `gates` y `evidencia` con sus sabotajes
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/recruit/sabotage_recruit.sh` (puerta vaciada, psql fuera, servicio parado) y `--only gates`; evidencia en `docs/verification/EP-20.md`
 - **Criterios de aceptación:**
   1. `servicio`: mide instancias y exige resurrección — `systemctl kill --signal=TERM botnet-recruit; sleep 6; systemctl is-active botnet-recruit` = `active`, `systemctl show -p NRestarts --value botnet-recruit` ≥ **1**, `curl -o /dev/null -w '%{http_code}' 127.0.0.1:9110/healthz` = **200** en < **10 s**, y `'botnet-recruit-worker@*'` devuelve **3** líneas `active` con 0 en `failed` (A2-06, A3-19).
   2. `lazo`: `psql -tAc "SELECT count(*) FROM recruit_planner_ticks WHERE action='up'"` ≥ **1**, `... action='down'` ≥ **1**, y `count(*)` con `reason IS NULL OR reason=''` = **0**; un lazo siempre en `hold` (fixture) hace fallar la comprobación con salida **≥ 1** (A3-16 — hoy un lazo que nunca decide sale verde).
@@ -80,7 +80,7 @@ created: 2026-11-17
 
 ### T-2006 — Reputación del origen: PTR + `abuse@`, sonda RBL diaria y tope SYN por /24
 - **Épica:** EP-20
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `bash scripts/recruit/rbl_probe.sh --ip 74.208.94.91` → `rc=0` con las dos listas limpias y fila en `recruit_source_ip`; evidencia en `docs/verification/EP-20.md` y `deploy/dns/origen-ptr.md`
 - **Criterios de aceptación:**
   1. `bash scripts/recruit/rbl_probe.sh --ip 74.208.94.91; echo exit=$?` = **0** con salida vacía en las dos listas: `for d in zen.spamhaus.org bl.spamcop.net; do dig +short 94.94.208.74.$d; done` vacío **7 días consecutivos**, y `psql -tAc "SELECT count(*) FROM recruit_source_ip WHERE ip='74.208.94.91' AND NOT rbl_listed AND rbl_checked_at > now()-interval '1 day'"` = **1** (A1-05).
   2. Lista encontrada ⇒ pausa automática ≤ **48 h**: con el fixture que hace responder a `zen.spamhaus.org`, en ≤ **60 s** `psql -tAc "SELECT rbl_listed FROM recruit_source_ip WHERE ip='74.208.94.91'"` = **t** y `psql -tAc "SELECT paused FROM recruit_control"` = **t** con `psql -tAc "SELECT paused_until > now() + interval '47 hour' FROM recruit_source_ip"` = **t** (1/1).
