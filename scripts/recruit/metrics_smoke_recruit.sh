@@ -25,7 +25,18 @@ for h in curl psql awk; do
 done
 : "${DATABASE_URL:?DATABASE_URL requerido}"
 q() { psql -tAc "$1" "$DATABASE_URL" 2>/dev/null | tr -d '\r'; }
-m() { curl -s --max-time 5 "$M/metrics"; }
+# El endpoint comparte el pool de 2 conexiones con el planificador: se
+# reintenta un par de veces antes de dar una lectura por vacia.
+m() {
+  local i=0
+  while [ "$i" -lt 3 ]; do
+    local out
+    out=$(curl -s --max-time 5 "$M/metrics")
+    [ -n "$out" ] && { printf '%s' "$out"; return 0; }
+    i=$((i+1)); sleep 0.3
+  done
+  return 0
+}
 
 # Las 17 familias del §10 que el gate exige por nombre.
 FAMILIAS='pps_target
@@ -111,7 +122,7 @@ if quiere slo; then
     v=$(m | awk '/^botnet_recruit_orchestrator_tick_age_seconds/{print $2}')
     [ "${v:-999}" -ge 90 ] && altas=$((altas+1))
     i=$((i+1))
-    sleep 0.1
+    sleep 0.5
   done
   [ "$altas" -eq 0 ] && ok "tick_age < 90 s en 100 muestras" || bad "tick_age >= 90 s en $altas/100 muestras"
   backlog=$(m | awk '/^botnet_recruit_enroll_backlog/{print $2}')
