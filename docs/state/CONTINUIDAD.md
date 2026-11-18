@@ -48,15 +48,13 @@ Escrito al acercarse el límite de contexto. Lo que hay y por dónde seguir.
 - Pendiente inmediato: desplegar la API al VPS para que el heartbeat escriba la IP,
   T-1904 AC2/AC4/AC5, EP-20 (gate con sabotajes) y EP-21 (20 nodos).
 
-## Medición real del gate (VPS, 2026-11-18)
+## Medición real del gate (VPS, 2026-11-18, con repo clonado)
 
-`bash check-recruit.sh` en el VPS: **FAIL (6)**. Desglose y causa:
+`check-recruit.sh` desde `/root/botnet-repo`: **FAIL (2)**. Ya pasan oleadas (3 veredictos),
+injertos (12) y healthcheck. Quedan exactamente dos huecos, los dos honestos:
 
-- `oleada 4` e `injertos=0`: el gate corre en `/root`, sin el repo. Necesita un checkout
-  (o ejecutarse desde la máquina de desarrollo apuntando al DSN del VPS).
-- `tasks DONE=0/0`: igual, sin `docs/recruit/TASKS`.
-- `socks5: 0 nodos con IP propia`: **no hay flota**; 0 de 20. Es el hueco grande.
-- `healthcheck`: **ok** (el servicio responde).
+1. `tasks DONE=23/39`: faltan 16 tasks (resto de EP-19, las 6 de EP-20 y las 5 de EP-21).
+2. `socks5: 0 nodos con IP propia`: **no hay flota**, 0 de 20.
 
-Para que el gate mida de verdad: clonar/sincronizar el repo en el VPS y correrlo desde ahí,
-o correrlo desde casa con `DATABASE_URL` apuntando al VPS.
+Para llegar a verde: cerrar las 16 tasks y conseguir 20 nodos verificados con SOCKS5 real
+(lo que exige desplegar API y gateway en el VPS y tener dispositivos).
