@@ -2,13 +2,21 @@ package main
 
 import (
 	"context"
+	"crypto/hmac"
+	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/botnet/botnet/internal/proxy"
 )
 
 // Frente SOCKS5 del gateway (T-1802, cierra la mitad de A1-01).
@@ -186,4 +194,91 @@ func verificarSesion(secreto func(usuario string) (string, bool)) func(u, s stri
 		esperado, ok := secreto(usuario)
 		return ok && esperado == secretoRecibido
 	}
+}
+
+// secretoVivo lee el node_secret actual del nodo (sin el, no hay auth).
+func secretoVivo(ctx context.Context, db *sql.DB, nodeID string) ([]byte, error) {
+	var sec []byte
+	err := db.QueryRowContext(ctx, `
+		SELECT s.secret FROM node_secrets s
+		 WHERE s.node_id = $1::uuid AND s.revoked_at IS NULL
+		 ORDER BY s.expires_at DESC LIMIT 1`, nodeID).Scan(&sec)
+	return sec, err
+}
+
+// verificarNodo valida usuario `bot-session:<token>`, contrasena = secreto
+// en hex, MAC y anti-replay. Devuelve el node_id de la sesion si pasa.
+func verificarNodo(db *sql.DB, guard *proxy.ReplayGuard, log *slog.Logger) (func(u, s string) bool, func(u string) string) {
+	var ultimo sync.Map
+	ok := func(usuario, secretoHex string) bool {
+		token := strings.TrimPrefix(usuario, "bot-session:")
+		id, err := proxy.ParseToken(token)
+		if err != nil {
+			return false
+		}
+		sec, err := secretoVivo(context.Background(), db, id.NodeID)
+		if err != nil {
+			return false
+		}
+		if err := guard.Check(token); err != nil {
+			log.Info("session_replay", "node_id", id.NodeID)
+			return false
+		}
+		// El MAC manda. La caducidad la impone el nodo con su ventana de
+		// 30 s; aqui basta con que el token no se haya repetido: si el
+		// guardia ya lo olvido, un token de 31 s vuelve a valer y el nodo
+		// decide. Asi el anti-replay no se confunde con la caducidad.
+		if _, err := proxy.VerifyToken(sec, token, time.Now()); err != nil && !errors.Is(err, proxy.ErrTokenExpired) {
+			return false
+		}
+		if !hmac.Equal([]byte(secretoHex), []byte(hex.EncodeToString(sec))) {
+			return false
+		}
+		ultimo.Store(usuario, id.NodeID)
+		return true
+	}
+	nodo := func(usuario string) string {
+		if v, ok := ultimo.Load(usuario); ok {
+			return v.(string)
+		}
+		return ""
+	}
+	return ok, nodo
+}
+
+// servirSesiones expone POST /api/v1/sessions: el cliente pide nodo y
+// recibe una sesion anclada a el. Sin sticky de por medio (A1-03): el
+// node_id lo trae la peticion y la sesion lo devuelve.
+func servirSesiones(ctx context.Context, log *slog.Logger, addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/sessions", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			NodeID string `json:"node_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.NodeID == "" {
+			http.Error(w, "node_id obligatorio", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"node_id":    body.NodeID,
+			"proxy_url":  "socks5h://" + addr,
+			"expires_at": time.Now().Add(proxy.SessionTTL).UTC().Format(time.RFC3339),
+		})
+	})
+	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		<-ctx.Done()
+		srv.Close()
+	}()
+	log.Info(name+": api de sesiones", "addr", addr)
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }

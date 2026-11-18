@@ -35,7 +35,7 @@ created: 2026-11-17
 
 ### T-1803 — Sesión RFC1929 anclada al `node_id` con anti-replay de 30 s
 - **Épica:** EP-18
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `scripts/recruit/gentoken` + handshake contra el gw y `go test ./internal/proxy/ -run TestReplay`; evidencia en `docs/verification/EP-18.md`
 - **Criterios de aceptación:**
   1. `curl -s -X POST 127.0.0.1:8080/api/v1/sessions -H "Authorization: Bearer $KEY" -d '{"node_id":"<uuid>"}' -o /tmp/s.json -w '%{http_code}'` = **201** y `grep -c node_id /tmp/s.json` = **1** (la sesión lleva el nodo, no lo elige el sticky de `cmd/botnet-gw/select.go:34-42`).
   2. Autenticación RFC1929 obligatoria: con `user=bot-session:<id>` y `pass=$NODE_SECRET` el verify sale **0**; con la contraseña alterada en 1 byte sale **≠ 0** y `psql -tAc "SELECT count(*) FROM recruit_socks5_checks WHERE checked_at > now()-interval '5 min'"` no sube (0 filas nuevas).

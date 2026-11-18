@@ -23,6 +23,8 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/botnet/botnet/internal/proxy"
+
 	"github.com/botnet/botnet/cmd/botnet-api/repo"
 	"github.com/botnet/botnet/internal/config"
 	"github.com/botnet/botnet/internal/db"
@@ -149,7 +151,13 @@ func gwServe(ctx context.Context, log *slog.Logger, rdb *redis.Client, sqlDB *sq
 
 	if socksAddr != "" {
 		go func() {
-			if err := servirSocks5(ctx, log, socksAddr, verificarSesion(nil)); err != nil {
+			go func() {
+				if err := servirSesiones(ctx, log, ":8080"); err != nil {
+					log.Error(name+" api sesiones", "err", err)
+				}
+			}()
+			verificar, _ := verificarNodo(sqlDB, proxy.NewReplayGuard(), log)
+			if err := servirSocks5(ctx, log, socksAddr, verificar); err != nil {
 				log.Error(name+" socks5", "err", err)
 			}
 		}()

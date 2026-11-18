@@ -9,6 +9,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -141,3 +142,38 @@ func (a *LocalAuth) Verify(secret []byte, token string, now time.Time) (SessionI
 
 // RedisCallsCount es el gauge del path de auth para el assert del test.
 func (a *LocalAuth) RedisCallsCount() uint64 { return a.RedisCalls.Load() }
+
+// ErrTokenReplay marca un token ya visto dentro de su ventana.
+var ErrTokenReplay = errors.New("proxy: session_replay")
+
+// ReplayGuard recuerda los tokens vistos durante la ventana anti-replay.
+// Es memoria del proceso: la ventana es de 30 s y no merece una ida a Redis
+// en el camino caliente (A2-14). Un reinicio olvida, y eso solo permite
+// repetir un token ya caducado por tiempo.
+type ReplayGuard struct {
+	mu    sync.Mutex
+	visto map[string]time.Time
+	now   func() time.Time
+}
+
+// NewReplayGuard crea el guardia con el reloj real.
+func NewReplayGuard() *ReplayGuard {
+	return &ReplayGuard{visto: map[string]time.Time{}, now: time.Now}
+}
+
+// Check registra el token y dice si es repeticion. Limpia lo caducado.
+func (g *ReplayGuard) Check(token string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	ahora := g.now()
+	for t, cuando := range g.visto {
+		if ahora.Sub(cuando) > SessionTTL {
+			delete(g.visto, t)
+		}
+	}
+	if _, ya := g.visto[token]; ya {
+		return ErrTokenReplay
+	}
+	g.visto[token] = ahora
+	return nil
+}
