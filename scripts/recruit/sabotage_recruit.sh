@@ -52,7 +52,7 @@ quiere() { [ -z "$ONLY" ] || [ "$ONLY" = "$1" ]; }
 #    El CHECK `recruit_verified_requires_node` no deja poner node_id a NULL en
 #    estado verified, asi que el aparato se cae por estado, no por enlace.
 if quiere nodo_fantasma; then
-  ids=$(q "SELECT string_agg(node_id::text, ',') FROM (
+  ids=$(q "SELECT string_agg(quote_literal(node_id::text), ',') FROM (
              SELECT DISTINCT node_id FROM recruit_candidates
               WHERE state='verified' AND node_id IS NOT NULL LIMIT 3) x")
   q "UPDATE nodes SET status='down' WHERE node_id IN ($ids)" >/dev/null
