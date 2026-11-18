@@ -36,7 +36,7 @@ created: 2026-11-17
 
 ### T-1903 — Plantilla `botnet-recruit-worker@.service` con cierre por instancias
 - **Épica:** EP-19
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: 3 workers enabled/active, cgroup 50 %, TERM revive y sin huérfanos; evidencia en docs/verification/EP-19.md
 - **Criterios de aceptación:**
   1. `systemctl is-enabled 'botnet-recruit-worker@*'` da **3** líneas `enabled` y `systemctl is-active 'botnet-recruit-worker@*'` da **3** líneas `active` (unit **y** plantilla habilitadas — A2-06; hoy solo existe `deploy/systemd/botd.service`).
   2. `systemctl show -p CPUQuota,MemoryMax,TasksMax,TimeoutStopSec,KillMode,StartLimitIntervalSec botnet-recruit-worker@probe` devuelve `CPUQuota=50%`, `MemoryMax=335544320`, `TasksMax=64`, `TimeoutStopSec=20s`, `KillMode=control-group`, `StartLimitIntervalSec=0` — **6/6** (el `128` del injerto V3 queda absorbido por la slice: 256 en la slice y 64 por worker, §4 y §9 del blueprint).
