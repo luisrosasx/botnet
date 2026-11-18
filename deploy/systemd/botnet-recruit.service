@@ -15,10 +15,9 @@ ExecStartPre=/usr/local/bin/recruit-preflight
 ExecStart=/usr/local/bin/botnet-recruit --db-pool=2
 Restart=always
 RestartSec=5
-# Sin sd_notify el watchdog de systemd mata el proceso cada 30 s aunque
-# este sano: el latido que se vigila es `tick_at` y lo publica /healthz.
-# Se queda como red de seguridad a 120 s, por encima de cualquier tick.
-WatchdogSec=120
+# Sin sd_notify, WatchdogSec mata el proceso aunque este sano: la muerte
+# llega a los 30 s (o 120 s) y `tick_age` se dispara sin que haya averia.
+# La vida la vigila `tick_at` por /healthz con Restart=always.
 TimeoutStopSec=20
 KillMode=control-group
 CPUQuota=150%
