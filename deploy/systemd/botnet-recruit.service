@@ -1,0 +1,32 @@
+# Orquestador del reclutamiento. Un solo proceso manda el ritmo y sirve el
+# healthcheck en 9110. restart siempre y sin limite de arranques: un
+# crash-loop no debe dejarlo en `failed` (A2-05).
+[Unit]
+Description=Orquestador de reclutamiento BOT.NET
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Slice=recruit.slice
+EnvironmentFile=/etc/botnet-recruit/env
+ExecStartPre=/usr/local/bin/recruit-preflight
+ExecStart=/usr/local/bin/botnet-recruit --db-pool=2
+Restart=always
+RestartSec=5
+WatchdogSec=30
+TimeoutStopSec=20
+KillMode=control-group
+CPUQuota=150%
+MemoryMax=512M
+TasksMax=128
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
