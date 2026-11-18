@@ -138,10 +138,17 @@ func tick(ctx context.Context, st *recruit.Store, explain bool) error {
 	if err := st.CerrarVentanas(ctx); err != nil {
 		return err
 	}
-	class, err := recruit.NextRateClass(ctx, st)
+	// El lazo decide con la foto de la ventana; la clase vigente sale de el,
+	// no del reloj.
+	m, err := st.MetricasDesdeBD(ctx)
 	if err != nil {
 		return err
 	}
+	d, err := st.Tick(ctx, m)
+	if err != nil {
+		return err
+	}
+	class := d.RateClass
 	if err := st.Heartbeat(ctx, class); err != nil {
 		return err
 	}
@@ -151,7 +158,7 @@ func tick(ctx context.Context, st *recruit.Store, explain bool) error {
 		}
 	}
 	if explain {
-		fmt.Printf("tick rate_class=%d\n", class)
+		fmt.Printf("tick action=%s rate_class=%d reason=%s pps=%d\n", d.Action, class, d.Reason, d.PPSObjetivo)
 	}
 	return nil
 }

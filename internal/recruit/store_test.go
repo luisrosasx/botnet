@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 
 	"github.com/botnet/botnet/migrations"
 )
+
+var scratchSeqTest int64
 
 // testStore abre una base scratch migrada y la borra al terminar.
 func testStore(t *testing.T) *Store {
@@ -30,9 +33,13 @@ func testStore(t *testing.T) *Store {
 		t.Fatalf("admin: %v", err)
 	}
 	defer admin.Close()
-	name := fmt.Sprintf("botnet_recruit_u_%d", time.Now().UnixNano()%1e9)
+	seq := atomic.AddInt64(&scratchSeqTest, 1)
+	name := fmt.Sprintf("botnet_recruit_u_%d_%d", os.Getpid(), seq)
 	// El motor portable suelta dial-timeout: reintento acotado en DDL
 	// administrativo y en la migracion (Apply es idempotente por version).
+	if _, err := admin.Exec("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)"); err != nil {
+		t.Fatalf("drop previo: %v", err)
+	}
 	var cerr error
 	for i := 0; i < 5; i++ {
 		if _, cerr = admin.Exec("CREATE DATABASE " + name); cerr == nil {

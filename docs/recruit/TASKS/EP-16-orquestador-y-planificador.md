@@ -90,7 +90,7 @@ created: 2026-11-17
 
 ### T-1607 — Lazo de histéresis con cooldown, `host_fallback`, freno de embudo y `RECRUIT_PPS_FIXED`
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestSube|TestDenominador|TestRevierte|TestCooldown|TestFreno|TestFallbackDeHost|TestPPSFijo|TestTick"` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. Subida de una sola clase con las tres ventanas propias: fixture de 3 ventanas con `socks5_success_ratio>=0,95`, `pps_effective>=0,90*pps_budget`, `node_leave_ratio_24h<=0,05` y `probes_15m>=200` ⇒ `psql -tAc "SELECT action, rate_class FROM recruit_planner_ticks ORDER BY tick_at DESC LIMIT 1"` = `up` con `rate_class` **+1** exacto; con `probes_15m=199` ⇒ `hold` con `reason='denominador_corto'` (1/1).
   2. Reversión de una clase y cooldown de 3: incumplir una métrica ⇒ el tick imprime `down` con **-1** exacto (`-2` imposible) y en las 3 ventanas siguientes `psql -tAc "SELECT count(*) FROM recruit_planner_ticks WHERE action='up' AND tick_at > $ventana_revertida"` = **0** (solo caben `hold` o `down`); nunca dos subidas en menos de 6 ventanas (fixture: **0** violaciones).

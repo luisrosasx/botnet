@@ -1,0 +1,44 @@
+{
+  "ventanas": [
+    {
+      "id": "buena",
+      "success_ratio": 0.97,
+      "effective_ratio": 0.95,
+      "leave_ratio_24h": 0.01,
+      "probes_15m": 250,
+      "node_load1": 2.5,
+      "host_cpu_known": true,
+      "embudo": 10
+    },
+    {
+      "id": "exito_bajo",
+      "success_ratio": 0.8,
+      "effective_ratio": 0.95,
+      "leave_ratio_24h": 0.01,
+      "probes_15m": 250,
+      "node_load1": 2.5,
+      "host_cpu_known": true,
+      "embudo": 10
+    },
+    {
+      "id": "denominador_corto",
+      "success_ratio": 0.97,
+      "effective_ratio": 0.95,
+      "leave_ratio_24h": 0.01,
+      "probes_15m": 199,
+      "node_load1": 2.5,
+      "host_cpu_known": true,
+      "embudo": 10
+    },
+    {
+      "id": "embudo_lleno",
+      "success_ratio": 0.97,
+      "effective_ratio": 0.95,
+      "leave_ratio_24h": 0.01,
+      "probes_15m": 250,
+      "node_load1": 2.5,
+      "host_cpu_known": true,
+      "embudo": 501
+    }
+  ]
+}
