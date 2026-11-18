@@ -51,7 +51,7 @@ created: 2026-11-17
 
 ### T-1904 — Escritura de `nodes.public_ip` en el enroll y en el primer heartbeat
 - **Épica:** EP-19
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: enrol real 201 con public_ip escrita, purge a 12/14 meses y guardia de re-clutaje; evidencia en docs/verification/EP-19.md
 - **Criterios de aceptación:**
   1. `psql -tAc "SELECT count(*) FROM nodes WHERE public_ip IS NULL AND status IN ('enrolled','live')"` = **0** tras el piloto (hoy iguala el total de nodos vivos, porque nadie escribe la columna — A1-04).
   2. Escrito en el `201`: con un enroll nuevo, `curl -s -o /dev/null -w '%{http_code}'` = **201** y en la misma transacción `psql -tAc "SELECT count(*) FROM nodes WHERE node_id=$1 AND public_ip IS NOT NULL"` = **1**; `grep -c 'public_ip' cmd/botnet-api/repo/repo.go` ≥ **2** (en `InsertNode` y en `UpdateHeartbeat`).

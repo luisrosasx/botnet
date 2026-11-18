@@ -28,7 +28,12 @@ func main() {
 	}
 	sum := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(sum[:])
+	raw, err := hex.DecodeString(sec)
+	if err != nil || len(raw) != 32 {
+		fmt.Fprintln(os.Stderr, "el secreto debe ser 32 B en hex")
+		os.Exit(2)
+	}
 	t := proto.Ticket{TokenHash: hash, ProbeID: probe, IAT: time.Now().Unix()}
-	fmt.Println(proto.SignTicket([]byte(sec), t))
+	fmt.Println(proto.SignTicket(raw, t))
 	fmt.Println(hash)
 }
