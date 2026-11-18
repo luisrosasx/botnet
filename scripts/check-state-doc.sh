@@ -64,7 +64,9 @@ TESTS=$(grep -rh '^func Test' --include='*_test.go' . | wc -l | tr -d ' ')
 VERIF=$(ls docs/verification/*.md | wc -l | tr -d ' ')
 RUNBOOKS=$(ls docs/runbooks/*.md 2>/dev/null | wc -l | tr -d ' ')
 MIGS=$(ls migrations/*.sql | wc -l | tr -d ' ')
-COMMITS=$(git rev-list --count HEAD)
+# Se cuenta origin/master y no HEAD: el clon del VPS lleva otra profundidad
+# de historia y el mismo documento tiene que servir en las dos maquinas.
+COMMITS=$(git rev-list --count origin/master 2>/dev/null || git rev-list --count HEAD)
 UNTRACKED=$(git status --short --untracked-files=all | wc -l | tr -d ' ')
 source scripts/env.sh >/dev/null 2>&1 || true
 PKGS=$(go list ./... 2>/dev/null | wc -l | tr -d ' ')
