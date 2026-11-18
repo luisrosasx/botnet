@@ -22,13 +22,6 @@ const name = "botnet-probe"
 // ppsSuelo es el ritmo cuando no hay orquestador que reparta.
 const ppsSuelo = 1500
 
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
-		os.Exit(1)
-	}
-}
-
 func run() error {
 	var (
 		claim   = flagBool("claim")
@@ -47,6 +40,15 @@ func run() error {
 		credJ   = flagStr("cred-json", "")
 		delivJ  = flagStr("deliver-json", "")
 	)
+	if claim && flagBool("loop") {
+		// Modo worker bajo systemd: reclama y duerme, sin salir.
+		seg := flagInt("interval", 20)
+		for {
+			ejecutarClaim(context.Background(), api, stage, worker, limit,
+				os.Getenv("RECRUIT_WORKER_CLAIM_FALLBACK") == "1")
+			time.Sleep(time.Duration(seg) * time.Second)
+		}
+	}
 	if stageB == "deliver" {
 		return ejecutarDeliver(context.Background(), delivJ, dryRun)
 	}
@@ -89,6 +91,29 @@ func run() error {
 	}
 	imprimir(items, "fallback")
 	return nil
+}
+
+// ejecutarClaim hace un intento y no devuelve error: en bucle se registra y
+// se sigue.
+func ejecutarClaim(ctx context.Context, api, stage, worker string, limit int, fallback bool) {
+	if !fallback {
+		if items, err := claimHTTP(ctx, api, stage, worker, limit); err == nil {
+			imprimir(items, "http")
+			return
+		}
+	}
+	st, err := recruit.Open(os.Getenv("DATABASE_URL"), 2)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
+		return
+	}
+	defer st.Close()
+	items, err := st.ClaimJobs(ctx, stage, worker, limit)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
+		return
+	}
+	imprimir(items, "fallback")
 }
 
 func imprimir(items []recruit.Claimed, via string) {
@@ -171,4 +196,11 @@ func upper(s string) string {
 		out = append(out, r)
 	}
 	return string(out)
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
+		os.Exit(1)
+	}
 }
