@@ -72,6 +72,33 @@ func run() error {
 		}
 		return runLoadExclusions(*csv)
 	}
+	if flag.Arg(0) == "wave" {
+		// `wave close`: cierra la oleada abierta con las cifras que la base
+		// puede probar. Idempotente: sin oleada abierta sale 0.
+		fs := flag.NewFlagSet("wave", flag.ContinueOnError)
+		nota := fs.String("note", "", "nota de la oleada que se cierra")
+		if len(os.Args) > 2 {
+			_ = fs.Parse(os.Args[3:])
+		}
+		if flag.Arg(1) != "close" {
+			return errors.New("uso: botnet-recruit wave close [--note=\"...\"]")
+		}
+		st, err := recruit.Open(os.Getenv("DATABASE_URL"), *dbPool)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		no, cerrada, err := st.CerrarOleada(context.Background(), *nota)
+		if err != nil {
+			return err
+		}
+		if !cerrada {
+			fmt.Printf("wave: sin oleada abierta (no se cierra nada)\n")
+			return nil
+		}
+		fmt.Printf("wave: cerrada oleada=%d nota=%q\n", no, *nota)
+		return nil
+	}
 	if *cfgPath != "" {
 		// La configuracion vive en variables de entorno; el fichero solo
 		// fija el DSN si existe, para el despliegue.

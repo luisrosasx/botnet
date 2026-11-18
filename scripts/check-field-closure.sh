@@ -24,8 +24,10 @@ DEBT_REL="$(basename "$DEBT_DOC")"
 # --- Marcadores de «pendiente de campo» (ampliar aqui, separados por |) ---------------
 # Estricto = marcador historico del doc de deuda. Extendido = estricto + anadidos.
 # Se comparan en minusculas contra el texto de la fila (veredicto + evidencia).
+# «sin VPS» = medido en laboratorio, pendiente de medir contra el VPS de verdad;
+# se anade al marcador extendido para que el cierre no lo cuente como cerrado.
 MARK_STRICT='blocked-hw'
-MARK_EXTRA='queda al soak|sin tshark'
+MARK_EXTRA='queda al soak|sin tshark|sin vps'
 MARK_EXT="$MARK_STRICT|$MARK_EXTRA"
 
 usage() {
@@ -252,6 +254,29 @@ evidence_check
 if [ "$FAIL" -eq 0 ]; then
   say_ok 'ninguna fila pendiente esta citada por la evidencia recogida'
 fi
+
+# --- PASS con la celda de evidencia vacia y manifiesto por epica ----------------------
+# Un PASS sin prueba escrita no vale nada, y borrar la fila tambien tiene que
+# doler: cada informe declara `pass_rows: N` en su cabecera y aqui se cuadra.
+CURBUF="$EVIDMSG"
+VACIAS=$(grep -hE '^\| T-[0-9]{4} \| AC[0-9]+ \| PASS \|' "${EP_FILES[@]}" 2>/dev/null \
+  | awk -F'|' '{ if ($5 ~ /^[[:space:]]*$/) c++ } END { print c + 0 }')
+if [ "${VACIAS:-0}" -eq 0 ]; then
+  say_ok 'toda fila PASS lleva evidencia escrita'
+else
+  say_fail "$VACIAS filas PASS con la celda de evidencia vacia"
+fi
+for f in "${EP_FILES[@]}"; do
+  ep="$(basename "$f" .md)"
+  decl=$(grep -m1 '^pass_rows:' "$f" 2>/dev/null | sed 's/^pass_rows:[[:space:]]*//' | tr -d '\r ')
+  [ -n "$decl" ] || continue
+  tengo=$(grep -cE '^\| T-[0-9]{4} \| AC[0-9]+ \| PASS \|' "$f" 2>/dev/null)
+  if [ "$tengo" = "$decl" ]; then
+    say_ok "manifiesto $ep: pass_rows=$decl cuadra"
+  else
+    say_fail "manifiesto $ep: declaradas pass_rows=$decl y hay $tengo (falta o sobra una fila)"
+  fi
+done
 
 # --- Salida ---------------------------------------------------------------------------
 report_render() {

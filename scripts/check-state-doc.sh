@@ -28,6 +28,23 @@ check_sections ESTADO-ACTUAL.md 10 "Resumen ejecutivo" "Inventario por capa" "M�
 check_sections DEUDA-Y-RIESGOS.md 6 "Deuda técnica" "Riesgos de producto" "Limitaciones aceptadas" "pendientes de medición de campo" "Prioridad de cierre"
 check_sections PROXIMOS-PASOS.md 6 "P0" "P1" "P2" "P3" "Orden recomendado"
 
+# --- estado del reclutamiento: oleadas cerradas y calendario con fechas ---
+R="$S/RECRUIT.md"
+if [ -s "$R" ]; then
+  ok "existe y no está vacío: RECRUIT.md"
+  n=$(grep -cE '^\| *[1-5] *\|' "$R")
+  [ "$n" -ge 5 ] && ok "RECRUIT.md con $n filas de oleada (mínimo 5)" || bad "RECRUIT.md con $n filas de oleada (mínimo 5)"
+  vacias=$(awk -F'|' '/^\| *[1-5] *\|/{for(i=2;i<=NF;i++) if($i ~ /^ *$/) print}' "$R" | grep -c .)
+  [ "${vacias:-1}" -eq 0 ] && ok "oleadas sin celdas vacías" || bad "$vacias filas de oleada con celda vacía"
+  grep -q '^## .*[Oo]leadas' "$R" && ok "RECRUIT.md cubre «Oleadas»" || bad "RECRUIT.md sin sección «Oleadas»"
+  hitos=$(grep -cE 'primer SYN real|primer nodo verificado' "$R")
+  [ "$hitos" -eq 2 ] && ok "RECRUIT.md con 2 hitos fechados" || bad "RECRUIT.md con $hitos hitos (esperado 2)"
+  fechas=$(grep -cE '20[0-9]{2}-[0-9]{2}-[0-9]{2}' "$R")
+  [ "$fechas" -ge 2 ] && ok "RECRUIT.md con $fechas fechas ISO" || bad "RECRUIT.md con $fechas fechas ISO (mínimo 2)"
+else
+  bad "falta o vacío: RECRUIT.md"
+fi
+
 # --- cifras contra el repo ---
 cmp_num() { # <etiqueta> <valor real> <fichero>
   local label="$1" real="$2" f="$3" doc

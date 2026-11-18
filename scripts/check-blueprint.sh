@@ -16,7 +16,12 @@ need "$BP/TASKS"
 
 EPIC_COUNT=$(ls "$BP/EPICS"/*.md 2>/dev/null | wc -l | tr -d ' ')
 TASK_FILES=$(ls "$BP/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
-TASK_COUNT=$(grep -h '^### T-' "$BP/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
+# El total suma el plan del nucleo y el del reclutamiento: el techo de 200
+# mira el backlog entero, no la mitad (T-2001 AC3). Se puede forzar por
+# entorno para probar que el techo muerde: TASK_COUNT=201 bash ...
+TASK_CORE=$(grep -h '^### T-' "$BP/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
+TASK_RECRUIT=$(grep -h '^### T-' "$ROOT/docs/recruit/TASKS"/*.md 2>/dev/null | wc -l | tr -d ' ')
+TASK_COUNT="${TASK_COUNT:-$((TASK_CORE + TASK_RECRUIT))}"
 
 # >= y no ==: el reclutamiento anade epicas y el gate no debe romperse al crecer.
 [ "$EPIC_COUNT" -ge 14 ] && ok "epics=$EPIC_COUNT (minimo 14)" || bad "epics=$EPIC_COUNT (esperado >=14)"
@@ -35,7 +40,19 @@ for f in "$BP"/EPICS/EP-*.md; do
   id=$(grep -m1 '^id: EP-' "$f" | sed 's/id: //' | tr -d '\r')
   grep -q "$id" "$BP/BLUEPRINT.md" || missing_ref="$missing_ref $id"
 done
-[ -z "$missing_ref" ] && ok "BLUEPRINT referencia los 14 epics" || bad "BLUEPRINT no referencia:$missing_ref"
+[ -z "$missing_ref" ] && ok "BLUEPRINT referencia los epics" || bad "BLUEPRINT no referencia:$missing_ref"
+
+# Paridad: una epica sin informe en docs/verification/ es plan sin cierre.
+# Si se anade una epica y su informe no llega, la puerta lo dice con su ID
+# (T-2001 AC2: sabotaje EP-99 -> rojo citando EP-99).
+PARIDAD=""
+for f in "$BP"/EPICS/EP-*.md; do
+  id=$(grep -m1 '^id: EP-' "$f" | sed 's/id: //' | tr -d '\r')
+  [ -z "$id" ] && continue
+  [ -f "$ROOT/docs/verification/$id.md" ] || PARIDAD="$PARIDAD $id"
+done
+[ -z "$PARIDAD" ] && ok "paridad epicas <-> docs/verification" \
+  || bad "epicas sin informe de verificacion:$PARIDAD"
 
 FIELDS_BAD=""
 AC_BAD=""
@@ -64,7 +81,7 @@ done > /tmp/bp_tasks.txt 2>&1
 
 if [ -s /tmp/bp_tasks.txt ]; then bad "tasks incompletas:"; sed 's/^/       /' /tmp/bp_tasks.txt; else ok "todas las tasks con >=3 criterios y campos obligatorios"; fi
 
-AC_COUNT=$(grep -hcE '^\s+[0-9]+\. ' "$BP"/TASKS/*.md 2>/dev/null | awk '{s+=$1} END {print s+0}')
+AC_COUNT=$(grep -hcE '^\s+[0-9]+\. ' "$BP"/TASKS/*.md "$ROOT/docs/recruit/TASKS"/*.md 2>/dev/null | awk '{s+=$1} END {print s+0}')
 [ "$AC_COUNT" -ge $((TASK_COUNT*3)) ] && ok "criterios de aceptacion totales=$AC_COUNT" || bad "criterios=$AC_COUNT (< 3 por task)"
 
 BANNED=$(grep -hoiE 'funciona correctamente|esta optimizado|es robusto' "$BP"/TASKS/*.md 2>/dev/null | wc -l | tr -d ' ')

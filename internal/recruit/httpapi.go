@@ -45,6 +45,9 @@ func (a *API) healthz(w http.ResponseWriter, r *http.Request) {
 		masscanOK = a.MasscanOK()
 	}
 	h, err := a.Store.Health(ctx, masscanOK)
+	if err != nil {
+		NotePGError(err)
+	}
 	code := http.StatusOK
 	status := "ok"
 	switch {
@@ -69,24 +72,20 @@ func (a *API) healthz(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "rate_class=%d\n", h.RateClass)
 }
 
-// metrics publica los gauges del servicio en formato Prometheus.
+// metrics publica los gauges del servicio en formato Prometheus. El catalogo
+// entero vive en metrics.go: aqui solo se escribe.
 func (a *API) metrics(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 	w.Header().Set("content-type", "text/plain; version=0.0.4")
 	h, err := a.Store.Health(ctx, true)
 	if err != nil {
+		NotePGError(err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(w, "botnet_recruit_db_up 0\n")
 		return
 	}
-	fmt.Fprintf(w, "# TYPE botnet_recruit_orchestrator_tick_age_seconds gauge\n")
-	fmt.Fprintf(w, "botnet_recruit_orchestrator_tick_age_seconds %d\n", int(h.TickAge.Seconds()))
-	fmt.Fprintf(w, "# TYPE botnet_recruit_rate_class gauge\n")
-	fmt.Fprintf(w, "botnet_recruit_rate_class %d\n", h.RateClass)
-	fmt.Fprintf(w, "botnet_recruit_paused %d\n", boolToInt(h.Paused))
-	fmt.Fprintf(w, "# TYPE botnet_recruit_claim_latency_ms gauge\n")
-	fmt.Fprintf(w, "botnet_recruit_claim_latency_ms %d\n", a.Store.ClaimP95())
+	a.Store.Snapshot(ctx, h).Write(w)
 }
 
 func boolToInt(b bool) int {

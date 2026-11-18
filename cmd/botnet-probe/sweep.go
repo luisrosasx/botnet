@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -153,6 +155,78 @@ func ejecutarSweep(ctx context.Context, rutaJSON string, limit int, dryRun bool,
 		return err
 	}
 	defer st.Close()
+	if err := ingerirCandidatos(ctx, st, cands, limit, sinRespuesta, emitSQL); err != nil {
+		return err
+	}
+	if emitSQL {
+		return nil
+	}
+	fmt.Printf("sweep: candidatos=%d cohorts=%d pps=%d\n", len(cands), nCohortes, pps)
+	return nil
+}
+
+// ejecutarSweepLive barre de verdad: compra presupuesto en la ventana abierta,
+// lanza masscan con el ritmo concedido y mete lo hallado por el mismo camino
+// que el fixture. Sin el Grant el ratio efectivo se queda en cero y el
+// planificador solo sabe bajar de clase (T-2002 AC3).
+func ejecutarSweepLive(ctx context.Context, limit, segundos int) error {
+	c, err := cargaConfig()
+	if err != nil {
+		return err
+	}
+	st, err := abreStore()
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	if segundos <= 0 {
+		segundos = defaultCohortSeconds
+	}
+	pps := discovery.SweepRate(runtime.NumCPU())
+	if v := os.Getenv("RECRUIT_PPS_FIXED"); v != "" {
+		if n, err := strconv.Atoi(v); n > 0 && err == nil {
+			pps = n
+		}
+	}
+	pedido := pps * segundos
+	concedido, err := st.Grant(ctx, pedido)
+	if err != nil {
+		return fmt.Errorf("presupuesto: %w", err)
+	}
+	if concedido <= 0 {
+		return fmt.Errorf("presupuesto: ventana sin saldo (pedido=%d)", pedido)
+	}
+	ritmo := concedido / segundos
+	if ritmo < 1 {
+		ritmo = 1
+	}
+	argv := comandoMasscan(ritmo, cfgDespliegue("RECRUIT_SOURCE_IP"), cfgDespliegue("RECRUIT_ADAPTER"), c.Alcance, c.Puertos)
+	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	var errb strings.Builder
+	cmd.Stderr = &errb
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("masscan: %w: %s", err, strings.TrimSpace(errb.String()))
+	}
+	cands, err := discovery.ParseMasscanNDJSON(bytes.NewReader(out))
+	if err != nil {
+		return err
+	}
+	if err := ingerirCandidatos(ctx, st, cands, limit, nil, false); err != nil {
+		return err
+	}
+	fmt.Printf("sweep_live: candidatos=%d concedido=%d ritmo=%d pps segundos=%d\n",
+		len(cands), concedido, ritmo, segundos)
+	return nil
+}
+
+// ingerirCandidatos es el unico camino de entrada al embudo: fixture y red
+// comparten exclusion al nacer y estado inicial.
+func ingerirCandidatos(ctx context.Context, st *recruit.Store, cands []discovery.Candidate,
+	limit int, sinRespuesta map[string]bool, emitSQL bool) error {
+	if limit > 0 && len(cands) > limit {
+		cands = cands[:limit]
+	}
 	for _, cand := range cands {
 		if emitSQL {
 			fmt.Printf("INSERT INTO recruit_candidates (ip,port,source,state) VALUES ('%s',%d,'masscan','eligible') ON CONFLICT (ip,port) DO NOTHING;\n", cand.IP, cand.Port)
@@ -180,10 +254,6 @@ func ejecutarSweep(ctx context.Context, rutaJSON string, limit int, dryRun bool,
 			}
 		}
 	}
-	if emitSQL {
-		return nil
-	}
-	fmt.Printf("sweep: candidatos=%d cohorts=%d pps=%d\n", len(cands), nCohortes, pps)
 	return nil
 }
 

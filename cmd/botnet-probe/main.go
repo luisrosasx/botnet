@@ -35,6 +35,7 @@ func run() error {
 		dryRun  = flagBool("dry-run")
 		emitS   = flagBool("emit-sql")
 		cohS    = flagInt("cohort-seconds", defaultCohortSeconds)
+		liveS   = flagBool("live")
 		stageB  = flagStr("stage", "")
 		bannerJ = flagStr("banner-json", "")
 		credJ   = flagStr("cred-json", "")
@@ -57,6 +58,12 @@ func run() error {
 	}
 	if stageB == "banner" {
 		return ejecutarBanner(context.Background(), bannerJ, dryRun)
+	}
+	if liveS {
+		// Barrido de red real: compra presupuesto, lanza masscan y siembra.
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		return ejecutarSweepLive(ctx, limitS, cohS)
 	}
 	if sweepJ != "" || dryRun {
 		return ejecutarSweep(context.Background(), sweepJ, limitS, dryRun, emitS, cohS)
