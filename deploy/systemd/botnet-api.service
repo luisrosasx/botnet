@@ -1,0 +1,21 @@
+# API del backend: alta, heartbeat, panel y transparencia.
+[Unit]
+Description=API BOT.NET
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/botnet-recruit/env
+Environment=PORT=8081
+ExecStart=/usr/local/bin/botnet-api serve
+Restart=always
+RestartSec=5
+KillMode=control-group
+MemoryMax=512M
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
