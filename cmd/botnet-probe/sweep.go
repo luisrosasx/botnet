@@ -75,6 +75,9 @@ func comandoMasscan(pps int, sourceIP, adapter, ips, ports, salida string) []str
 		"--rate", strconv.Itoa(pps),
 		"--min-rate", strconv.Itoa(pps),
 		"-p", ports,
+		// masscan pide una confirmacion explicita en rangos grandes; el
+		// exclude de una sola direccion hace de "si, en serio".
+		"--exclude", "255.255.255.255",
 	)
 	// Escribir a fichero, no a stdout: masscan 1.3.2 no suelta el JSON si la
 	// salida es un pipe.
