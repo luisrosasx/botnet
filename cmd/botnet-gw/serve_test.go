@@ -191,7 +191,7 @@ func TestGWServeDrainGOAWAYStreamVivo(t *testing.T) {
 	buf := &bytes.Buffer{}
 	sctx, scancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- gwServe(sctx, gwLog(buf), rdb, db, repo.New(db), gwID, "") }()
+	go func() { done <- gwServe(sctx, gwLog(buf), rdb, db, repo.New(db), gwID, "", "") }()
 	time.Sleep(500 * time.Millisecond)
 	scancel()
 	if err := <-done; !errors.Is(err, context.Canceled) {

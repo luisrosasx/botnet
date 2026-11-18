@@ -44,6 +44,7 @@ func main() {
 		showVer     bool
 		cfgPath     string
 		metricsAddr string
+		socksAddr   string
 		serve       bool
 		gwID        string
 	)
@@ -52,6 +53,16 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", "", "servir /metrics aqui (vacio = off)")
 	flag.BoolVar(&serve, "serve", false, "gateway vivo: CRL, cache de api keys y drenaje GOAWAY (EP-08)")
 	flag.StringVar(&gwID, "gw-id", envOr("GW_ID", "gw-local"), "id del gateway (clave gw:drain:{id})")
+	flag.StringVar(&socksAddr, "socks5-listen", envOr("GW_SOCKS5_LISTEN", ""), "escuchar SOCKS5 aqui (vacio = off; tipico :1080)")
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, "uso: "+name+" [banderas]\n\n",
+			"  --config string         fichero JSON de configuracion\n",
+			"  --version               version y salir\n",
+			"  --metrics-addr string   servir /metrics aqui (vacio = off)\n",
+			"  --socks5-listen string  escuchar SOCKS5 aqui (vacio = off; tipico :1080)\n",
+			"  --serve                 gateway vivo: CRL, cache de keys y drenaje\n",
+			"  --gw-id string          id del gateway (default gw-local)\n")
+	}
 	flag.Parse()
 
 	if showVer {
@@ -60,7 +71,7 @@ func main() {
 	}
 	log := logx.New("info")
 	if serve {
-		if err := runServe(log, metricsAddr, gwID); err != nil {
+		if err := runServe(log, metricsAddr, gwID, socksAddr); err != nil {
 			log.Error(name+" serve", "err", err)
 			os.Exit(1)
 		}
@@ -84,7 +95,7 @@ func main() {
 // runServe arranca el gateway vivo: Redis+Postgres del entorno, CRL con
 // PollOnce inmediato + refresco de 55 s, warmup del cache de api keys y
 // el vigilante de drenaje. Bloquea hasta senal de apagado.
-func runServe(log *slog.Logger, metricsAddr, gwID string) error {
+func runServe(log *slog.Logger, metricsAddr, gwID, socksAddr string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -106,12 +117,12 @@ func runServe(log *slog.Logger, metricsAddr, gwID string) error {
 		return err
 	}
 	defer sqlDB.Close()
-	return gwServe(ctx, log, rdb, sqlDB, repo.New(sqlDB), gwID, metricsAddr)
+	return gwServe(ctx, log, rdb, sqlDB, repo.New(sqlDB), gwID, metricsAddr, socksAddr)
 }
 
 // gwServe es la mitad testable del arranque: conecta las piezas del
 // contrato EP-08 sobre infraestructura ya abierta.
-func gwServe(ctx context.Context, log *slog.Logger, rdb *redis.Client, sqlDB *sql.DB, rp *repo.Data, gwID, metricsAddr string) error {
+func gwServe(ctx context.Context, log *slog.Logger, rdb *redis.Client, sqlDB *sql.DB, rp *repo.Data, gwID, metricsAddr, socksAddr string) error {
 	crl := gatewayCRL(rdb)
 	if err := crl.PollOnce(ctx); err != nil {
 		return fmt.Errorf("%s serve crl: %w", name, err)
@@ -136,6 +147,13 @@ func gwServe(ctx context.Context, log *slog.Logger, rdb *redis.Client, sqlDB *sq
 		"gw_id", gwID, "crl_refresh", crl.Interval().String(),
 		"apikey_cache", "warmup ok", "apikey_warm", keys.Warmed())
 
+	if socksAddr != "" {
+		go func() {
+			if err := servirSocks5(ctx, log, socksAddr, verificarSesion(nil)); err != nil {
+				log.Error(name+" socks5", "err", err)
+			}
+		}()
+	}
 	if metricsAddr != "" {
 		m := logger.NewMetrics(name)
 		go func() {

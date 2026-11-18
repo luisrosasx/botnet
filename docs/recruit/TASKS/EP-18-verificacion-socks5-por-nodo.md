@@ -21,7 +21,7 @@ created: 2026-11-17
 
 ### T-1802 — Front SOCKS5/CONNECT en `cmd/botnet-gw` con listener en `:1080`
 - **Épica:** EP-18
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./cmd/botnet-gw/ -run TestSocks5Handshake -v` y saludo real en :1080; evidencia en `docs/verification/EP-18.md`
 - **Criterios de aceptación:**
   1. `ss -ltn | grep -c ':1080'` = **1** con el gw corriendo (hoy `nc: connection refused`) y `echo CONNECT 8.8.8.8:53 | timeout 3 nc 127.0.0.1 1080 | od -An -tx1 | head -1` imprime ` 05 02` o ` 05 00` (`grep -cE '05 0[02]'` = **1**).
   2. `botnet-gw --help | grep -c -- '--socks5-listen'` = **1** y `grep -cE 'socks5|CONNECT' cmd/botnet-gw/main.go` ≥ **2** (el frente es trabajo nuevo, no «tal cual» — A1-01).
