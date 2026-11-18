@@ -201,6 +201,19 @@ func ejecutarSweepLive(ctx context.Context, limit, segundos int) error {
 			pps = n
 		}
 	}
+	// Tope de SYN por /24 destino (A2-10): un bloque con muchas bocas no se
+	// lleva el presupuesto de los demas. Falla cerrado: si el barrido no cabe
+	// en el tope, hay que acortar puertos o bajar de prefijo.
+	tope := 4000
+	if v := cfgDespliegue("RECRUIT_BUDGET_PER_CIDR"); v != "" {
+		if n, err := strconv.Atoi(v); n > 0 && err == nil {
+			tope = n
+		}
+	}
+	bocas := len(strings.Split(c.Puertos, ","))
+	if por24 := 256 * bocas; por24 > tope {
+		return fmt.Errorf("tope por /24: %d SYN en cada /24 supera el tope %d (acorta puertos o baja de prefijo)", por24, tope)
+	}
 	pedido := pps * segundos
 	concedido, err := st.Grant(ctx, pedido)
 	if err != nil {
