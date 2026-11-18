@@ -80,3 +80,15 @@ Gate en el VPS: FAIL por 2 (23/39 tasks, 0/20 nodos). Nada más se puede cerrar 
 (`JWT_SECRET` y `REDIS_URL` de desarrollo). Falta darle unidad systemd y probar el enrol
 real (T-1904 AC2): hace falta un ticket en `tickets` y el cuerpo que espera
 `proto.DecodeEnrollAPIRequest`.
+
+## Enrol real: donde se atasca (2026-11-18)
+
+Intentado el enrol contra la API viva: **403** `proto: forged intrusion ticket`. La causa es
+concreta: los tickets no son cadenas libres, van **firmados con HMAC** sobre
+`RECRUIT_TICKET_SECRET` y se validan con `proto.VerifyTicket` (`services/enroll.go:114`).
+Mi ticket aleatorio no lleva firma.
+
+Para el enrol hay que: generar un ticket firmado con el mismo `proto` (utilidad propia,
+p. ej. `scripts/recruit/genticket`), insertarlo o presentarlo, y enviar el cuerpo con `csr`
+y `consent_at` (el CSR ya se generó con openssl y el cuerpo con esas claves funciona:
+llegó al validador y solo falló el ticket).
