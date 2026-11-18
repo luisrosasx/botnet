@@ -46,6 +46,27 @@ if quiere socks5; then
   [ "${mal:-1}" -eq 0 ] && ok "socks5: cero ganadores sin evidencia dura" || bad "socks5: $mal ganadores sin evidencia"
 fi
 
+if quiere lazo; then
+  # El lazo deja decision escrita con motivo: sin motivos, el ritmo es a ojo.
+  ticks=$(q "SELECT count(*) FROM recruit_planner_ticks WHERE reason <> ''")
+  [ "${ticks:-0}" -ge 1 ] && ok "lazo: $ticks decisiones con motivo" || bad "lazo: 0 decisiones con motivo"
+  sinmotivo=$(q "SELECT count(*) FROM recruit_planner_ticks WHERE reason = ''")
+  [ "${sinmotivo:-1}" -eq 0 ] && ok "lazo: cero ticks sin motivo" || bad "lazo: $sinmotivo ticks sin motivo"
+fi
+
+if quiere evidencia; then
+  # Toda task DONE cita una PRUEBA y tiene fila en su informe.
+  sinprueba=0
+  for f in docs/recruit/TASKS/*.md; do
+    n=$(grep -c '^- \*\*Estado:\*\* DONE' "$f" 2>/dev/null)
+    p2=$(grep -c 'Estado:\*\* DONE | PRUEBA' "$f" 2>/dev/null)
+    [ "$n" = "$p2" ] || sinprueba=$((sinprueba+1))
+  done
+  [ "$sinprueba" -eq 0 ] && ok "evidencia: toda task DONE cita prueba" || bad "evidencia: $sinprueba ficheros con DONE sin PRUEBA"
+  informes=$(ls docs/verification/EP-*.md 2>/dev/null | wc -l)
+  [ "$informes" -ge 5 ] && ok "evidencia: $informes informes" || bad "evidencia: solo $informes informes"
+fi
+
 if quiere servicio; then
   code=$(curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:9110/healthz 2>/dev/null)
   [ "$code" = "200" ] && ok "healthcheck del orquestador" || bad "healthcheck=$code"

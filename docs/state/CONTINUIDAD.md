@@ -129,3 +129,12 @@ Estado medido en el VPS: **verdes** oleadas, injertos (12), verificacion de AC, 
 propia, cero ganadores sin evidencia y healthcheck. **Unico rojo: `tasks DONE=28/39`** (quedan las
 6 de EP-20 y las 5 de EP-21). El healthcheck estaba en 503 por `rate_class=0` de las pruebas;
 restaurado a clase 1 con latido fresco y `paused=false`.
+
+## Secciones `lazo` y `evidencia` del gate (2026-11-18)
+
+Anadidas y **en PASS en el VPS**: `lazo` exige ticks con motivo y cero sin motivo; `evidencia`
+exige que toda task DONE cite PRUEBA y que existan informes. Sabotajes ya probados de las
+secciones `socks5` y `servicio` (1 rojo, 0 al revertir).
+
+Aviso: al copiar el script por `scp` viaja con CRLF y bash falla en la linea 13; hay que
+`s sed -i "s/\r$//"` tras copiarlo (o arreglar el .gitattributes para scripts nuevos).
