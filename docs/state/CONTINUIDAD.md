@@ -99,3 +99,12 @@ llegó al validador y solo falló el ticket).
 averiguar dos cosas antes de reintentar: (1) de que clave lee el servicio (`TicketSecret` puede
 venir de otro nombre de variable, no de `RECRUIT_TICKET_SECRET`), y (2) la columna real de
 `tickets` (el `INSERT ... (token_hash, exp)` fallo).
+
+## 21 nodos enrolados (2026-11-18)
+
+Bucle de 20 enrolls contra la API viva: **20/20 en 201**. Total **21 nodos enrolados** en el VPS
+(el de prueba + 20). Todos con `public_ip` escrita.
+
+Condicion (4) del objetivo pide ademas **verificacion SOCKS5 real por nodo**: falta levantar el
+gateway (`--socks5-listen`) y que cada nodo tenga un agente escuchando para que `botctl recruit
+verify` deje fila `ok`. Hoy la seccion `socks5` del gate sigue en 0/20.
