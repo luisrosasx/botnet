@@ -22,13 +22,36 @@ func ParseMasscanNDJSON(r io.Reader) ([]Candidate, error) {
 		if raw == "" || !strings.HasPrefix(raw, "{") {
 			continue
 		}
+		// masscan emite dos formas: una linea por puerto (ip/port) o una
+		// linea por host con `ports[]`. Se aceptan las dos.
 		var m struct {
 			IP       string `json:"ip"`
 			Port     int    `json:"port"`
 			Protocol string `json:"protocol"`
+			Ports    []struct {
+				Port   int    `json:"port"`
+				Proto  string `json:"proto"`
+				Status string `json:"status"`
+			} `json:"ports"`
 		}
 		if err := json.Unmarshal([]byte(raw), &m); err != nil {
 			return nil, fmt.Errorf("discovery: masscan line %d: %w", line+1, err)
+		}
+		if m.IP != "" && len(m.Ports) > 0 {
+			for _, pt := range m.Ports {
+				if strings.EqualFold(pt.Proto, "udp") || (pt.Status != "" && pt.Status != "open") {
+					continue
+				}
+				c := Candidate{IP: m.IP, Port: pt.Port, Source: "masscan"}
+				if svc, ok := InferService(pt.Port); ok {
+					c.Service = svc
+				}
+				if err := c.Validate(); err != nil {
+					continue
+				}
+				out = append(out, c)
+			}
+			continue
 		}
 		if strings.EqualFold(m.Protocol, "udp") {
 			continue // la tabla discovered modela tcp (handshake para zgrab2)
