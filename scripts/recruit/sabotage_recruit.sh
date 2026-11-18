@@ -73,8 +73,21 @@ if quiere cuenta_por_intentos; then
        SELECT candidate_id, node_id, target, 200, 4096, 120, egress_ip, true, true, $i
          FROM recruit_socks5_checks WHERE candidate_id=$cid AND ok LIMIT 1" >/dev/null
   done
-  antes=$(q "SELECT count(DISTINCT node_id) FROM recruit_socks5_checks WHERE ok")
-  probar cuenta_por_intentos nodos "distintos_con_latido=$antes"
+  # Se compara la misma cifra antes y despues: si sube, se estan contando
+  # intentos y no aparatos.
+  antes=$(bash scripts/check-recruit.sh --only nodos | grep -oE 'con_evidencia_dura=[0-9]+' | head -1)
+  TOTAL=$((TOTAL+1))
+  bash scripts/check-recruit.sh --only nodos >/dev/null 2>&1
+  rc=$?
+  despues=$(bash scripts/check-recruit.sh --only nodos | grep -oE 'con_evidencia_dura=[0-9]+' | head -1)
+  if [ "$rc" -eq 0 ] && [ "$antes" = "$despues" ] && [ -n "$antes" ]; then
+    printf 'ok   %-32s el conteo no se mueve (%s)
+' cuenta_por_intentos "$antes"
+  else
+    printf 'FAIL %-32s el conteo cambio: %s -> %s (rc=%d)
+' cuenta_por_intentos "${antes:-?}" "${despues:-?}" "$rc"
+    FALLAN=$((FALLAN+1))
+  fi
   q "DELETE FROM recruit_socks5_checks WHERE candidate_id=$cid AND attempt>1" >/dev/null
   q "CREATE UNIQUE INDEX IF NOT EXISTS recruit_socks5_one_win
        ON recruit_socks5_checks (candidate_id) WHERE ok" >/dev/null
