@@ -299,11 +299,9 @@ func TestReintentoNoEsMuerte(t *testing.T) {
 	st := testStore(t)
 	ctx := context.Background()
 	seedCandidates(t, st, 1)
+	seedAttempts(t, st, 2)
 	got, _ := st.Claim(ctx, "enrolling", "w", 1)
 	c := got[0]
-	if _, err := st.db.Exec(`UPDATE recruit_candidates SET stage_attempts=2 WHERE candidate_id=$1`, c.CandidateID); err != nil {
-		t.Fatalf("attempts: %v", err)
-	}
 	if err := st.TransitionOutcome(ctx, c.CandidateID, c.LeaseOwner, c.LeaseToken, StateDeferred, "no_delivery", "w", "fail"); err != nil {
 		t.Fatalf("deferred: %v", err)
 	}
@@ -516,5 +514,13 @@ func TestReclaimTrasMuerte(t *testing.T) {
 	var vencidos int
 	if err := st.db.QueryRow(`SELECT count(*) FROM recruit_candidates WHERE lease_expires_at < now()`).Scan(&vencidos); err != nil || vencidos != 0 {
 		t.Fatalf("quedan %d leases vencidos (err=%v)", vencidos, err)
+	}
+}
+
+// seedAttempts deja el siguiente candidato con n intentos previos.
+func seedAttempts(t *testing.T, st *Store, n int) {
+	t.Helper()
+	if _, err := st.db.Exec(`UPDATE recruit_candidates SET stage_attempts = $1 WHERE state='eligible'`, n); err != nil {
+		t.Fatalf("attempts: %v", err)
 	}
 }

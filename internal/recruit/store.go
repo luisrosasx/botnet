@@ -157,13 +157,21 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 	var err error
 	// Reintento corto ante deadlock/serializacion: con varios reclamadores
 	// el motor puede abortar una transaccion y perder un reclamo.
-	for intento := 0; intento < 3; intento++ {
+	for intento := 0; intento < 6; intento++ {
 		rows, err = s.db.QueryContext(ctx, `
 		WITH picked AS MATERIALIZED (
 		  SELECT candidate_id FROM recruit_candidates
 		   WHERE ((state IN ('eligible','deferred') AND next_attempt_at <= now())
 		           OR (lease_expires_at IS NOT NULL AND lease_expires_at < now()))
 		     AND (lease_expires_at IS NULL OR lease_expires_at < now())
+		     -- Tope por destino (A1-13): la cuarta tentativa de cred o
+		     -- entrega sobre la misma IP en la hora se queda fuera.
+		     AND ($4 = false OR (
+		           SELECT count(*) FROM recruit_jobs j
+		             JOIN recruit_candidates c2 USING (candidate_id)
+		            WHERE c2.ip = recruit_candidates.ip
+		              AND j.stage IN ('cred','deliver')
+		              AND date_trunc('hour', j.claimed_at) = date_trunc('hour', now())) < $5)
 		   ORDER BY next_attempt_at
 		   LIMIT $1
 		   FOR UPDATE SKIP LOCKED
@@ -172,6 +180,7 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 		   SET lease_owner = $2,
 		       lease_token = c.lease_token + 1,
 		       lease_expires_at = now() + make_interval(secs => $3),
+		       stage_attempts = LEAST(c.stage_attempts + 1, 8),
 		       -- un reclaim de una fase en vuelo conserva su estado: solo
 		       -- las filas de cola pasan a 'sweeping'.
 		       state = CASE WHEN c.state IN ('eligible','deferred') THEN 'sweeping' ELSE c.state END,
@@ -182,8 +191,9 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 		   -- el SELECT y aqui, esta fila se salta en vez de duplicarse.
 		   AND (c.state IN ('eligible','deferred') OR c.lease_expires_at < now())
 		   AND (c.lease_expires_at IS NULL OR c.lease_expires_at < now())
-		RETURNING c.candidate_id, c.ip::text, c.port, c.lease_token,
-		          c.lease_owner, c.lease_expires_at`, limit, worker, secs)
+		RETURNING c.candidate_id, c.ip::text, c.port, c.stage_attempts AS attempt,
+		          c.lease_token, c.lease_owner, c.lease_expires_at`,
+			limit, worker, secs, stage == "cred" || stage == "deliver", IntentosPorDestino)
 		if err == nil || !esReintentable(err) {
 			break
 		}
@@ -196,8 +206,8 @@ func (s *Store) Claim(ctx context.Context, stage, worker string, limit int) ([]C
 	var out []Claimed
 	for rows.Next() {
 		var c Claimed
-		if err := rows.Scan(&c.CandidateID, &c.IP, &c.Port, &c.LeaseToken,
-			&c.LeaseOwner, &c.LeaseUntil); err != nil {
+		if err := rows.Scan(&c.CandidateID, &c.IP, &c.Port, &c.Attempt,
+			&c.LeaseToken, &c.LeaseOwner, &c.LeaseUntil); err != nil {
 			return nil, err
 		}
 		c.Stage = stage
@@ -247,7 +257,7 @@ func (s *Store) TransitionOutcome(ctx context.Context, id int64, owner string, t
 	if to == StateDeferred {
 		var attempts int
 		if err := tx.QueryRowContext(ctx, `
-			SELECT stage_attempts + 1 FROM recruit_candidates WHERE candidate_id = $1`, id).Scan(&attempts); err != nil {
+			SELECT GREATEST(stage_attempts, 1) FROM recruit_candidates WHERE candidate_id = $1`, id).Scan(&attempts); err != nil {
 			return err
 		}
 		backoff = sql.NullInt64{Int64: int64(Backoff(attempts).Seconds()), Valid: true}
@@ -255,7 +265,7 @@ func (s *Store) TransitionOutcome(ctx context.Context, id int64, owner string, t
 	res, err := tx.ExecContext(ctx, `
 		UPDATE recruit_candidates
 		   SET state = $4, fail_reason = CASE WHEN $5 = '' THEN NULL ELSE $5 END,
-		       stage_attempts = LEAST(stage_attempts + CASE WHEN $4 = 'deferred' THEN 1 ELSE 0 END, 8),
+
 		       next_attempt_at = CASE WHEN $6::bigint IS NULL THEN next_attempt_at
 		                              ELSE now() + make_interval(secs => $6::int) END,
 		       age_clock_at = CASE WHEN $7 THEN now() ELSE age_clock_at END,
@@ -394,7 +404,8 @@ func esReintentable(err error) bool {
 	txt := err.Error()
 	for _, frag := range []string{"deadlock detected", "could not serialize",
 		"SQLSTATE 40001", "SQLSTATE 40P01", "wsarecv", "connection reset",
-		"broken pipe", "unexpected EOF", "i/o timeout"} {
+		"broken pipe", "unexpected EOF", "i/o timeout", "dial error",
+		"connectex", "failed to connect"} {
 		if strings.Contains(txt, frag) {
 			return true
 		}
@@ -414,6 +425,11 @@ func jobKey(ip string, port int, stage string, attempt int) string {
 
 // ClaimJobs reclama y deja la fila de trabajo con su clave de idempotencia.
 func (s *Store) ClaimJobs(ctx context.Context, stage, worker string, limit int) ([]Claimed, error) {
+	// La ventana se rueda aqui: si el orquestador esta parado, el worker no
+	// se queda sin presupuesto esperando a que vuelva.
+	if _, _, err := s.OpenWindow(ctx); err != nil && !errors.Is(err, ErrSinPresupuesto) {
+		return nil, err
+	}
 	out, err := s.Claim(ctx, stage, worker, limit)
 	if err != nil {
 		return nil, err

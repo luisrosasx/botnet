@@ -135,12 +135,20 @@ func run() error {
 }
 
 func tick(ctx context.Context, st *recruit.Store, explain bool) error {
+	if err := st.CerrarVentanas(ctx); err != nil {
+		return err
+	}
 	class, err := recruit.NextRateClass(ctx, st)
 	if err != nil {
 		return err
 	}
 	if err := st.Heartbeat(ctx, class); err != nil {
 		return err
+	}
+	if class > 0 {
+		if _, _, err := st.OpenWindow(ctx); err != nil && !errors.Is(err, recruit.ErrSinPresupuesto) {
+			return err
+		}
 	}
 	if explain {
 		fmt.Printf("tick rate_class=%d\n", class)

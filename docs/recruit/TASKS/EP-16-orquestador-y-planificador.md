@@ -76,7 +76,7 @@ created: 2026-11-17
 
 ### T-1606 — Ventanas-hora UTC auto-ruedantes con política por hora y granel con deuda
 - **Épica:** EP-16
-- **Estado:** PENDING
+- **Estado:** DONE | PRUEBA: `go test ./internal/recruit/ -run "TestVentanas|TestVentanaRueda|TestGranel|TestTopePorDestino"` y evidencia en `docs/verification/EP-16.md`
 - **Criterios de aceptación:**
   1. Toda ventana nace alineada a la hora UTC: `psql -tAc "SELECT count(*) FROM recruit_windows WHERE date_trunc('hour', window_start) <> window_start"` = **0**, y `psql -tAc "SELECT count(*) FROM recruit_windows WHERE closed_at IS NOT NULL AND closed_at <= window_start"` = **0**.
   2. La compra rueda la ventana sola (A2-03): con `psql -c "UPDATE recruit_windows SET pps_used=pps_budget, window_start = window_start - interval '70 min'"` y el orquestador parado, en ≤ **60 s** aparece la ventana nueva (`psql -tAc "SELECT count(*) FROM recruit_windows WHERE closed_at IS NULL"` = **1**) y `psql -tAc "SELECT pps_used < pps_budget FROM recruit_windows WHERE closed_at IS NULL"` = **t**; `botnet-recruit --roll-window --once` es idempotente (segunda ejecución: 0 filas nuevas, salida **0**).
