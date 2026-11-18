@@ -131,7 +131,9 @@ if quiere slo; then
   [ "${backlog:-9999}" -le 500 ] && ok "enroll_backlog=$backlog (<= 500)" || bad "enroll_backlog=$backlog (> 500)"
   p95=$(m | awk '/^botnet_recruit_claim_latency_ms/{print $2}')
   [ "${p95:-9999}" -le 250 ] && ok "claim_latency p95=${p95}ms (<= 250)" || bad "claim_latency p95=${p95}ms (> 250)"
-  n53300=$(journalctl -u 'botnet-recruit*' --since -1h --no-pager 2>/dev/null | grep -c 53300 || true)
+  # Se busca el SQLSTATE del motor, no la cifra suelta: los volcados de
+  # goroutines de Go llevan hex como 0xd533000 y daban falsos positivos.
+  n53300=$(journalctl -u 'botnet-recruit*' --since -1h --no-pager 2>/dev/null     | grep -cE 'SQLSTATE 53300|too many connections' || true)
   [ "${n53300:-1}" -eq 0 ] && ok "cero errores 53300 en la ultima hora" || bad "$n53300 errores 53300 en la ultima hora"
 fi
 
