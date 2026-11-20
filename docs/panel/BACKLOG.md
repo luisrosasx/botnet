@@ -21,7 +21,7 @@ Reglas de este backlog:
 
 | Épica | Título | Cierra |
 | --- | --- | --- |
-| EP-30 | Panel: inventario de dispositivos y estado | listado exacto con IP y estado |
+| EP-30 | Panel: inventario de dispositivos y estado (doc en `docs/blueprint/EPICS`) | listado exacto con IP y estado |
 | EP-31 | Panel: base caída, paginación y métricas propias | 503 contra lista vacía |
 | EP-32 | Motor: cierre del bucle cola, barrido y presupuesto | exploración sin manos |
 | EP-33 | Exponencialidad medida y sin doble conteo | ×1,5 tres ventanas |

@@ -301,3 +301,19 @@ Módulo añadido tras el concurso de reclutamiento (`docs/recruit/BLUEPRINT.md`,
 | EP-19 | Despliegue en el VPS: slice, unidades, salud y `public_ip` | `scripts/recruit/bootstrap_vps.sh` + `deploy/systemd/recruit.slice` y las 3 unidades + escritura de `nodes.public_ip` | `bootstrap_vps.sh --check` = 0 (2 si falta una herramienta), `pg_stat_activity` ≤ 20 sin `53300` y `/healthz` 503 con el latido caducado | T-1901…T-1905 |
 | EP-20 | Observabilidad, paraguas de comprobaciones y puertas | catálogo `botnet_recruit_*` en stdlib + `scripts/check-recruit.sh` con contrato de salida + `scripts/recruit/rbl_probe.sh` | `check-recruit.sh` sale con el número exacto de fallos, imprime `comprobaciones=8` y da **2** con `psql` fuera del PATH | T-2001…T-2006 |
 | EP-21 | Puerta de cierre: oleadas, 20 nodos reales y evidencia | `botnet-recruit wave close` + `docs/state/RECRUIT.md` + `docs/runbooks/recruit.md` + `scripts/recruit/sabotage_recruit.sh` | 5 oleadas `cerrada` en `recruit_waves`, ≥ 20 `verified` reales con sus 5 condiciones y los 6 sabotajes en rojo con el paraguas en 0 | T-2101…T-2105 |
+
+## F8 — Panel de dispositivos y motor de descubrimiento
+
+Panel local de administración (solo lectura) de los dispositivos de la flota y
+cierre del motor que los descubre, sin Stripe ni GitHub. Diseño en cinco
+oleadas de swarm; cada hallazgo acaba en una task del backlog del panel.
+
+| Épica | Entregable | Criterio de cierre |
+| --- | --- | --- |
+| EP-30 | Listado de dispositivos con IP, IP de salida y estado | filas del panel = filas de la base, en ambos sentidos |
+| EP-31 | Base caída, paginación y métricas del panel | 503 `db_down` sin lista vacía; 5.000 filas por debajo de 500 ms |
+| EP-32 | Cierre del bucle cola, barrido y presupuesto | el motor barre sin intervención |
+| EP-33 | Crecimiento medido y sin doble conteo | ×1,5 tres ventanas seguidas, 0 IP duplicadas |
+| EP-34 | Puerta del panel con sabotajes | seis sabotajes muerden |
+| EP-35 | Despliegue del panel y runbook | unidad activa y runbook ejecutable |
+| EP-36 | Cierre con evidencia y puertas anteriores en 0 | tres puertas en 0 |
