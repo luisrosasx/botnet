@@ -147,8 +147,17 @@ if quiere panel; then
           bad "panel: hay node_id de mas o de menos"
         fi
       fi
-      # Base caida: 503, nunca lista vacia.
-      if api "/api/nodes?dsn_probe=1" >/dev/null 2>&1; then :; fi
+      # Base caida: 503 con db_down y SIN la clave rows, nunca lista vacia.
+      # Se fuerza con `dsn_probe=1`, que hace al panel conectar a un DSN muerto.
+      code2=$(curl -s -o /tmp/panel_probe_$$.json -w '%{http_code}' --max-time 15 \
+        -H "Authorization: Bearer $TOKEN" "$PANEL/api/nodes?dsn_probe=1")
+      if [ "${code2:-0}" = "503" ] && grep -q 'db_down' /tmp/panel_probe_$$.json \
+         && ! grep -q '"rows"' /tmp/panel_probe_$$.json; then
+        ok "panel: base caida=503 con db_down y sin filas"
+      else
+        bad "panel: base caida=${code2:-000} (quería 503 db_down sin rows)"
+      fi
+      rm -f /tmp/panel_probe_$$.json
     fi
   fi
 fi
